@@ -1,0 +1,15 @@
+<?php
+
+namespace {{ namespace }};
+
+use Omalizadeh\QueryFilter\Filter;
+use Illuminate\Http\Request;
+
+class {{ class }} extends Filter
+{
+    public function __construct(Request $request)
+    {
+        parent::__construct($request);
+        $this->relations = [];
+    }
+}

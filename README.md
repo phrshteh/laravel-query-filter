@@ -1,5 +1,9 @@
 # Laravel Query Filter
-Laravel query filter provides an elegant way to filter your resources via the request query string
+Laravel query filter provides an elegant way to filter resources via request query string.
+You can specify conditions, parameters and relations in query string to filter eloquent models.
+
+## Usage
+Coming Soon...
 
 ### License
 
