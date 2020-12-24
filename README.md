@@ -1,4 +1,4 @@
-# laravel-query-filter
+# Laravel Query Filter
 Laravel query filter provides an elegant way to filter your resources via the request query string
 
 ### License
