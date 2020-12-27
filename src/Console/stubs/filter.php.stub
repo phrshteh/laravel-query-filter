@@ -10,6 +10,8 @@ class {{ class }} extends Filter
     public function __construct(Request $request)
     {
         parent::__construct($request);
-        $this->relations = [];
+        $this->filterableAttributes = [];
+        $this->filterableRelations = [];
+        $this->summableAttributes = [];
     }
 }

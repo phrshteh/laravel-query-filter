@@ -6,12 +6,12 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 
-class Filter extends MakeFilter
+class Filter extends QueryFilter
 {
     protected $request;
-    protected $builder;
-    protected $relations = [];
-    protected $sumField = null;
+    protected $filterableAttributes = [];
+    protected $filterableRelations = [];
+    protected $summableAttributes = [];
 
     /**
      * PostFilter constructor.
@@ -23,7 +23,36 @@ class Filter extends MakeFilter
     public function __construct(Request $request)
     {
         $this->request = $request;
-        $this->getParamFilters();
+        $this->setParameters();
+    }
+
+    /**
+     * @throws \JsonException
+     */
+    public function setParameters(): void
+    {
+        $requestData = json_decode(
+            $this->request->get('filter', '[]'),
+            true,
+            512,
+            JSON_THROW_ON_ERROR
+        );
+        $sortData = Arr::get($requestData, 'sort', []);
+        if (!empty($sortData)) {
+            $this->setSortData($sortData);
+        }
+        $page = Arr::get($requestData, 'page', []);
+        if (!empty($page)) {
+            $this->setPage($page);
+        }
+        $filters = Arr::get($requestData, 'filters', []);
+        if (!empty($filters)) {
+            $this->setFilters($filters);
+        }
+        $sums = Arr::get($requestData, 'sum', []);
+        if (!empty($sums)) {
+            $this->setSumFields($sums);
+        }
     }
 
     /**
@@ -33,38 +62,23 @@ class Filter extends MakeFilter
      */
     public function apply($builder): array
     {
-        $this->builder = $builder;
-        $entries = $builder;
-        $count = $entries->count();
-        $sum = 0;
-
-        if ($this->sumField) {
-            $sum = $entries->sum($this->sumField);
-        }
-
         if ($this->hasFilter()) {
-            $entries = $this->applyFilters($this->builder);
+            $entries = $this->applyFilters($builder);
         }
-
+        if ($this->hasSum()) {
+            $sum = $this->sum($entries);
+        }
         if ($this->hasSort()) {
             $entries = $this->sort($entries);
         }
-
         $count = $entries->count();
-
-        if ($this->sumField) {
-            $sum = $entries->sum($this->sumField);
-        }
-
-        if (! empty($this->limit)) {
-            $entries = $entries->limit($this->limit);
-
-            if ( $this->offset !== null ) {
-                $entries = $entries->offset($this->offset);
+        if ($this->hasLimit()) {
+            $entries = $entries->limit($this->getLimit());
+            if ($this->hasOffset()) {
+                $entries = $entries->offset($this->getOffset());
             }
         }
-
-        return array($entries, $count, $sum);
+        return array($entries, $count, $sum ?? []);
     }
 
     /**
@@ -74,10 +88,9 @@ class Filter extends MakeFilter
      */
     protected function applyFilters(Builder $entries): Builder
     {
-        foreach ($this->filters as $filters) {
+        foreach ($this->getFilters() as $filters) {
             $entries = $this->applyFilter($filters, $entries);
         }
-
         return $entries;
     }
 
@@ -89,25 +102,22 @@ class Filter extends MakeFilter
      */
     protected function applyFilter($filters, $entries): Builder
     {
-        return $entries->where(
-            function ($query) use ($filters) {
-                foreach ($filters as $filterKey => $item) {
-                    $item = $this->prepareFilter($item);
-                    if (!$this->applyRelations(
-                        $query,
-                        $item,
-                        $filterKey === 0
-                    )
-                    ) {
+        return $entries->where(function ($query) use ($filters) {
+            foreach ($filters as $filterKey => $item) {
+                $item = $this->sanitizeFilter($item);
+                if (!$this->filterRelations($query, $item, $filterKey === 0)) {
+                    if ($this->hasFilterableAttribute($item->field)) {
                         if ($filterKey === 0) {
                             $this->where($query, $item);
                         } else {
-                            $this->OrWhere($query, $item);
+                            $this->orWhere($query, $item);
                         }
+                    } else {
+                        continue;
                     }
                 }
             }
-        );
+        });
     }
 
     /**
@@ -119,13 +129,14 @@ class Filter extends MakeFilter
     protected function where($query, $item): Builder
     {
         if ($this->isWhereNull($item)) {
-            return $this->whereNull($query, $item->field, 'and');
+            return $this->whereNull($query, $item->field);
         }
-
+        if ($this->isWhereNotNull($item)) {
+            return $this->whereNotNull($query, $item->field);
+        }
         if ($this->isWhereIn($item)) {
             return $this->whereIn($query, $item);
         }
-
         return $query->where($item->field, $item->op, $item->value);
     }
 
@@ -138,14 +149,192 @@ class Filter extends MakeFilter
     protected function orWhere($query, $item)
     {
         if ($this->isWhereNull($item)) {
-            return $this->whereNull($query, $item->field, 'or');
+            return $this->whereNull($query, $item->field, true);
         }
-
+        if ($this->isWhereNotNull($item)) {
+            return $this->whereNotNull($query, $item->field, true);
+        }
         if ($this->isWhereIn($item)) {
-            return $this->whereIn($query, $item);
+            return $this->whereIn($query, $item, true);
         }
-
         return $query->orWhere($item->field, $item->op, $item->value);
+    }
+
+    /**
+     * @param $query
+     * @param $item
+     *
+     * @return mixed
+     */
+    public function whereIn($query, $item, bool $orCondition = false)
+    {
+        if ($orCondition) {
+            return $query->orWhereIn($item->field, $item->value);
+        } else {
+            return $query->whereIn($item->field, $item->value);
+        }
+    }
+
+    /**
+     * @param $query
+     * @param $columns
+     * @param  bool  $orCondition
+     *
+     * @return mixed
+     */
+    public function whereNull($query, $columns, bool $orCondition = false)
+    {
+        if ($orCondition) {
+            return $query->orWhereNull($columns);
+        } else {
+            return $query->whereNull($columns);
+        }
+    }
+
+    /**
+     * @param $query
+     * @param $columns
+     * @param  bool  $orCondition
+     * @param  false  $not
+     *
+     * @return mixed
+     */
+    public function whereNotNull($query, $columns, bool $orCondition = false)
+    {
+        if ($orCondition) {
+            return $query->orWhereNotNull($columns);
+        } else {
+            return $query->whereNotNull($columns);
+        }
+    }
+
+    /**
+     * relations = [
+     *  'relation_name' => [
+     *      'destination_key' => 'origin_key'
+     *   ]
+     * ]
+     *
+     * @param $query
+     * @param $item
+     * @param  bool  $isWhere
+     *
+     * @return mixed
+     */
+    protected function filterRelations(&$query, $item, bool $firstKey = true)
+    {
+        if (!$this->hasAnyFilterableRelation()) {
+            return false;
+        }
+        foreach ($this->filterableRelations as $relationName => $params) {
+            $relationKey = $this->hasFilterableRelation($params, $item);
+            if ($relationKey !== false) {
+                $item = $this->setFilterRelationKey($item, $relationKey);
+                $query = $this->filterRelation(
+                    $query,
+                    $item,
+                    $relationName,
+                    !$firstKey
+                );
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * @param $relationProperties
+     * @param $filter
+     *
+     * @return false|int|string
+     */
+    protected function hasFilterableRelation($relationProperties, $filter)
+    {
+        if (empty($relationProperties)) {
+            return false;
+        }
+        if (!is_array($relationProperties)) {
+            $relationProperties = [$relationProperties];
+        }
+        return $relationProperties[$filter->field] ??
+            array_search($filter->field, $relationProperties, true);
+    }
+
+    /**
+     * @param $item  'filterObject'
+     * @param $keyName
+     *
+     * @return object $filter
+     */
+    protected function setFilterRelationKey($item, $keyName)
+    {
+        if (!empty($keyName)) {
+            $item->field = $keyName;
+        }
+        return $item;
+    }
+
+    /**
+     * @param $entries
+     * @param $filter
+     * @param $relation
+     * @param $orCondition
+     *
+     * @return Builder
+     */
+    public function filterRelation($entries, $filter, $relation, bool $orCondition = false): Builder
+    {
+        if ($orCondition) {
+            return $entries->orWhereHas($relation, function ($query) use ($filter) {
+                $this->where($query, $filter);
+            });
+        } else {
+            return $entries->whereHas($relation, function ($query) use ($filter) {
+                $this->where($query, $filter);
+            });
+        }
+    }
+
+    /**
+     * @param $entries
+     *
+     * @return Builder
+     */
+    protected function sort($entries): Builder
+    {
+        foreach ($this->getSortData() as $sort) {
+            $field = $sort->field;
+            $dir = $sort->dir;
+            $entries = $entries->orderBy($field, $dir);
+        }
+        return $entries;
+    }
+
+    protected function sum($entries): array
+    {
+        $sum = array();
+        foreach ($this->getSumFields() as $sumField) {
+            if ($this->hasSummableAttribute($sumField)) {
+                $sum[$sumField] = $entries->sum($sumField);
+            }
+        }
+        return $sum;
+    }
+
+    /**
+     * @param  object  $filter
+     *
+     * @return object $filter
+     */
+    private function sanitizeFilter(object $filter)
+    {
+        if ($filter->op === 'like') {
+            $filter->value = '%' . $filter->value . '%';
+        }
+        if ($filter->op === 'is' and $filter->value !== null) {
+            $filter->op = '=';
+        }
+        return $filter;
     }
 
     /**
@@ -169,166 +358,14 @@ class Filter extends MakeFilter
     }
 
     /**
-     * @param $query
      * @param $item
      *
-     * @return mixed
+     * @return bool
      */
-    public function whereIn($query, $item)
+    protected function isWhereNotNull($item): bool
     {
-        return $query->whereIn($item->field, $item->value);
+        return ($item->op === 'not' and $item->value === null);
     }
-
-    /**
-     * @param $query
-     * @param $columns
-     * @param  string  $boolean
-     * @param  false  $not
-     *
-     * @return mixed
-     */
-    public function whereNull($query, $columns, $boolean = 'and', $not = false)
-    {
-        return $query->whereNull($columns, $boolean, $not);
-    }
-
-    /**
-     * @param  object  $filter
-     *
-     * @return object $filter
-     */
-    private function prepareFilter(object $filter)
-    {
-        if ($filter->op === 'like') {
-            $filter->value = '%'.$filter->value.'%';
-        }
-
-        if ($filter->op === 'is') {
-            $filter->op = '=';
-        }
-        return $filter;
-    }
-
-    private function hasRelation(): bool
-    {
-        return !empty($this->relations);
-    }
-
-    /**
-     * relations = [
-     *  'relation_name' => [
-     *      'destination_key' => 'origin_key'
-     *   ]
-     * ]
-     *
-     * @param $query
-     * @param $item
-     * @param  bool  $isWhere
-     *
-     * @return mixed
-     */
-    protected function applyRelations(&$query, $item, $isWhere = true)
-    {
-        if (!$this->hasRelation()) {
-            return false;
-        }
-        foreach ($this->relations as $relationName => $params) {
-            if (($relationKey = $this->hasRelationField($params, $item))
-                !== false
-            ) {
-                $item = $this->setRelationKey($item, $relationKey);
-                $query = $this->filterRelation(
-                    $query,
-                    $item,
-                    $relationName,
-                    $isWhere
-                );
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * @param $relationProperties
-     * @param $filter
-     *
-     * @return false|int|string
-     */
-    private function hasRelationField($relationProperties, $filter)
-    {
-        if (empty($relationProperties)) {
-            return false;
-        }
-
-        if (!is_array($relationProperties)) {
-            $relationProperties = [$relationProperties];
-        }
-
-        return $relationProperties[$filter->field] ??
-            array_search($filter->field, $relationProperties, true);
-    }
-
-    /**
-     * @param $item  'filterObject'
-     * @param $keyName
-     *
-     * @return object $filter
-     */
-    private function setRelationKey($item, $keyName)
-    {
-        if (!empty($keyName)) {
-            $item->field = $keyName;
-        }
-        return $item;
-    }
-
-
-    /**
-     * @param $entries
-     *
-     * @return Builder
-     */
-    protected function sort($entries): Builder
-    {
-        foreach ($this->sortData as $sortDatum) {
-            $field = $sortDatum->field;
-            $dir = $sortDatum->dir;
-            $entries = $entries->orderBy($field, $dir);
-        }
-        return $entries;
-    }
-
-    /**
-     * @param $entries
-     * @param $filter
-     * @param $relation
-     * @param $isWhere
-     *
-     * @return Builder
-     */
-    public function filterRelation(
-        $entries,
-        $filter,
-        $relation,
-        $isWhere
-    ): Builder {
-        if (!$isWhere) {
-            return $entries->orWhereHas(
-                $relation,
-                function ($query) use ($filter) {
-                    $this->where($query, $filter);
-                }
-            );
-        }
-        return $entries->whereHas(
-            $relation,
-            function ($query) use ($filter) {
-                $this->where($query, $filter);
-            }
-        );
-    }
-
 
     /**
      * @return bool
@@ -346,33 +383,53 @@ class Filter extends MakeFilter
         return !empty($this->sortData);
     }
 
+    /**
+     * @return bool
+     */
+    protected function hasSum(): bool
+    {
+        return !empty($this->sumFields);
+    }
 
     /**
-     * @throws \JsonException
+     * @return bool
      */
-    public function getParamFilters(): void
+    protected function hasLimit(): bool
     {
+        return !empty($this->limit);
+    }
 
-        $requestData = \json_decode(
-            $this->request->get('filter', '[]'),
-            true,
-            512,
-            JSON_THROW_ON_ERROR
-        );
+    /**
+     * @return bool
+     */
+    protected function hasOffset(): bool
+    {
+        return isset($this->offset);
+    }
 
-        $sortData =  Arr::get($requestData, 'sort', []);
-        if (! empty($sortData)) {
-            $this->setSortData($sortData);
-        }
+    /**
+     * @return bool
+     */
+    protected function hasAnyFilterableRelation(): bool
+    {
+        return !empty($this->filterableRelations);
+    }
 
-        $page = Arr::get($requestData, 'page', []);
-        if (! empty($page)) {
-            $this->setPage($page);
-        }
+    /**
+     * @return bool
+     */
+    protected function hasFilterableAttribute($fieldName): bool
+    {
+        return !empty($this->filterableAttributes)
+            and in_array($fieldName, $this->filterableAttributes, true);
+    }
 
-        $filters = Arr::get($requestData, 'filters', []);
-        if (! empty($filters)) {
-            $this->setFilters($filters);
-        }
+    /**
+     * @return bool
+     */
+    protected function hasSummableAttribute($fieldName): bool
+    {
+        return !empty($this->summableAttributes)
+            and in_array($fieldName, $this->summableAttributes, true);
     }
 }
