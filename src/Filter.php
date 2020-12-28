@@ -60,7 +60,7 @@ class Filter extends QueryFilter
      *
      * @return array
      */
-    protected function apply($builder): array
+    public function apply($builder): array
     {
         if ($this->hasFilter()) {
             $entries = $this->applyFilters($builder);
