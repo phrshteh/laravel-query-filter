@@ -5,7 +5,7 @@ namespace Omalizadeh\QueryFilter\Console;
 use Illuminate\Console\GeneratorCommand;
 use Symfony\Component\Console\Input\InputArgument;
 
-class Filter extends GeneratorCommand
+class MakeFilter extends GeneratorCommand
 {
     protected $signature = 'make:filter {name}';
     protected $type = "Filter";

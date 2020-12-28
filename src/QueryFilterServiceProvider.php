@@ -3,7 +3,7 @@
 namespace Omalizadeh\QueryFilter;
 
 use Illuminate\Support\ServiceProvider;
-use Omalizadeh\QueryFilter\Console\Filter;
+use Omalizadeh\QueryFilter\Console\MakeFilter;
 
 class QueryFilterServiceProvider extends ServiceProvider
 {
@@ -11,7 +11,7 @@ class QueryFilterServiceProvider extends ServiceProvider
     {
         if ($this->app->runningInConsole()) {
             $this->commands([
-                Filter::class
+                MakeFilter::class
             ]);
         }
     }
