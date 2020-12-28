@@ -3,6 +3,14 @@
     "description": "A laravel package for resource filtering via request query string",
     "type": "library",
     "license": "MIT",
+    "keywords": [
+        "query",
+        "filter",
+        "resource",
+        "pagination",
+        "model",
+        "eloquent"
+    ],
     "authors": [
         {
             "name": "Omid Alizadeh",
@@ -23,9 +31,7 @@
     },
     "require": {
         "php": "^7.3|^8.0",
-        "laravel/framework": "^6.0|^7.0|^8.0",
-        "ext-json": "*",
-        "symfony/console": "^5.0"
+        "laravel/framework": "^6.0|^7.0|^8.0"
     },
     "minimum-stability": "stable"
 }
