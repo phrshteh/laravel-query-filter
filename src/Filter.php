@@ -29,7 +29,7 @@ class Filter extends QueryFilter
     /**
      * @throws \JsonException
      */
-    public function setParameters(): void
+    protected function setParameters(): void
     {
         $requestData = json_decode(
             $this->request->get('filter', '[]'),
@@ -60,7 +60,7 @@ class Filter extends QueryFilter
      *
      * @return array
      */
-    public function apply($builder): array
+    protected function apply($builder): array
     {
         if ($this->hasFilter()) {
             $entries = $this->applyFilters($builder);
@@ -166,7 +166,7 @@ class Filter extends QueryFilter
      *
      * @return mixed
      */
-    public function whereIn($query, $item, bool $orCondition = false)
+    protected function whereIn($query, $item, bool $orCondition = false)
     {
         if ($orCondition) {
             return $query->orWhereIn($item->field, $item->value);
@@ -182,7 +182,7 @@ class Filter extends QueryFilter
      *
      * @return mixed
      */
-    public function whereNull($query, $columns, bool $orCondition = false)
+    protected function whereNull($query, $columns, bool $orCondition = false)
     {
         if ($orCondition) {
             return $query->orWhereNull($columns);
@@ -199,7 +199,7 @@ class Filter extends QueryFilter
      *
      * @return mixed
      */
-    public function whereNotNull($query, $columns, bool $orCondition = false)
+    protected function whereNotNull($query, $columns, bool $orCondition = false)
     {
         if ($orCondition) {
             return $query->orWhereNotNull($columns);
@@ -282,7 +282,7 @@ class Filter extends QueryFilter
      *
      * @return Builder
      */
-    public function filterRelation($entries, $filter, $relation, bool $orCondition = false): Builder
+    protected function filterRelation($entries, $filter, $relation, bool $orCondition = false): Builder
     {
         if ($orCondition) {
             return $entries->orWhereHas($relation, function ($query) use ($filter) {
@@ -326,7 +326,7 @@ class Filter extends QueryFilter
      *
      * @return object $filter
      */
-    private function sanitizeFilter(object $filter)
+    protected function sanitizeFilter(object $filter)
     {
         if ($filter->op === 'like') {
             $filter->value = '%' . $filter->value . '%';
