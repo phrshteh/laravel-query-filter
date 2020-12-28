@@ -1,6 +1,7 @@
 {
     "name": "omalizadeh/laravel-query-filter",
     "description": "A laravel package for resource filtering via request query string",
+    "homepage": "https://github.com/omalizadeh/laravel-query-filter",
     "type": "library",
     "license": "MIT",
     "keywords": [
