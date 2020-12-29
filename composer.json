@@ -10,7 +10,8 @@
         "resource",
         "pagination",
         "model",
-        "eloquent"
+        "eloquent",
+        "json"
     ],
     "authors": [
         {
