@@ -138,6 +138,9 @@ class Filter extends QueryFilter
         if ($this->isWhereIn($item)) {
             return $this->whereIn($query, $item);
         }
+        if ($this->isWhereNotIn($item)) {
+            return $this->whereNotIn($query, $item);
+        }
         return $query->where($item->field, $item->op, $item->value);
     }
 
@@ -158,6 +161,9 @@ class Filter extends QueryFilter
         if ($this->isWhereIn($item)) {
             return $this->whereIn($query, $item, true);
         }
+        if ($this->isWhereNotIn($item)) {
+            return $this->whereNotIn($query, $item, true);
+        }
         return $query->orWhere($item->field, $item->op, $item->value);
     }
 
@@ -173,6 +179,21 @@ class Filter extends QueryFilter
             return $query->orWhereIn($item->field, $item->value);
         } else {
             return $query->whereIn($item->field, $item->value);
+        }
+    }
+
+    /**
+     * @param $query
+     * @param $item
+     *
+     * @return mixed
+     */
+    protected function whereNotIn($query, $item, bool $orCondition = false)
+    {
+        if ($orCondition) {
+            return $query->orWhereNotIn($item->field, $item->value);
+        } else {
+            return $query->whereNotIn($item->field, $item->value);
         }
     }
 
@@ -329,11 +350,20 @@ class Filter extends QueryFilter
      */
     protected function sanitizeFilter(object $filter)
     {
-        if ($filter->op === 'like') {
+        if (is_array($filter->value) and !in_array($filter->op, ['in', 'not'], true)) {
+            if ($filter->op === '=') {
+                $filter->op = 'in';
+            } else {
+                $filter->op = 'not';
+            }
+        } elseif ($filter->op === 'like') {
             $filter->value = '%' . $filter->value . '%';
-        }
-        if ($filter->op === 'is' and $filter->value !== null) {
+        } elseif ($filter->op === 'is' and $filter->value !== null) {
             $filter->op = '=';
+        } elseif ($filter->op === '=' and $filter->value === null) {
+            $filter->op = 'is';
+        } elseif (($filter->op === '!=' or $filter->op === '<>') and $filter->value === null) {
+            $filter->op = 'not';
         }
         return $filter;
     }
@@ -346,6 +376,16 @@ class Filter extends QueryFilter
     protected function isWhereIn($item): bool
     {
         return ($item->op === 'in' and is_array($item->value));
+    }
+
+    /**
+     * @param $item
+     *
+     * @return bool
+     */
+    protected function isWhereNotIn($item): bool
+    {
+        return ($item->op === 'not' and is_array($item->value));
     }
 
     /**
