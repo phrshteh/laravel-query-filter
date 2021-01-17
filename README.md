@@ -1,3 +1,6 @@
+[![Latest Stable Version](https://poser.pugx.org/omalizadeh/laravel-query-filter/v)](https://packagist.org/packages/omalizadeh/laravel-query-filter)
+[![License](https://poser.pugx.org/omalizadeh/laravel-query-filter/license)](https://packagist.org/packages/omalizadeh/laravel-query-filter)
+[![Total Downloads](https://poser.pugx.org/omalizadeh/laravel-query-filter/downloads)](https://packagist.org/packages/omalizadeh/laravel-query-filter)
 # Laravel Query Filter
 Laravel query filter provides an elegant way to filter resources via request query string.
 You can specify conditions, parameters and relations in query string to filter eloquent models.
@@ -20,7 +23,7 @@ class Admin extends Model
     use HasFilter;
 }
 ```
-Setting summable & filterable attributes, relations:
+Set filterable attributes and relations:
 ```php
 <?php
 
