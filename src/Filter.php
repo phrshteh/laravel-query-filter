@@ -26,6 +26,11 @@ class Filter extends QueryFilter
         $this->setParameters();
     }
 
+    public function getRequest(): Request
+    {
+        return $this->request;
+    }
+
     /**
      * @throws \JsonException
      */
