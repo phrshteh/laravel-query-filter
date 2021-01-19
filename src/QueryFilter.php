@@ -28,7 +28,8 @@ class QueryFilter implements Jsonable
 
     public function addMagicFilter(array $filter)
     {
-        $filter = ['field' => key($filter), 'value' => value($filter), 'op' => '='];
+        $key = key($filter);
+        $filter = ['field' => $key, 'op' => '=', 'value' => $filter[$key]];
         return $this->addFilter([$filter]);
     }
 
@@ -37,7 +38,7 @@ class QueryFilter implements Jsonable
      *
      * @return mixed
      */
-    public function prepareFilter($filters)
+    protected function prepareFilter($filters)
     {
         $keys = ['field', 'op', 'value'];
         $constFilters = $filters;
@@ -84,7 +85,7 @@ class QueryFilter implements Jsonable
      *
      * @return array
      */
-    public function prepareOrderBy($sortData)
+    protected function prepareOrderBy($sortData)
     {
         $constSortData = $sortData;
         $sortData = Arr::only($sortData, ['field', 'dir']);
