@@ -122,8 +122,8 @@ class QueryFilter implements Jsonable
     public function getPage(): array
     {
         return [
-            'limit' => $this->limit,
-            'offset' => $this->offset
+            'limit' => $this->getLimit(),
+            'offset' => $this->getOffset()
         ];
     }
 
@@ -134,16 +134,16 @@ class QueryFilter implements Jsonable
      */
     public function setPage(array $page): QueryFilter
     {
-        if (!empty($page['limit'])) {
+        if (!empty($page['limit']) and is_int($page['limit'])) {
             $this->setLimit($page['limit']);
         }
-        if (isset($page['offset'])) {
+        if (isset($page['offset']) and is_int($page['offset'])) {
             $this->setOffset($page['offset']);
         }
         return $this;
     }
 
-    public function getOffset()
+    public function getOffset(): int
     {
         return $this->offset;
     }
@@ -159,7 +159,7 @@ class QueryFilter implements Jsonable
         return $this;
     }
 
-    public function getLimit()
+    public function getLimit(): int
     {
         return $this->limit;
     }
