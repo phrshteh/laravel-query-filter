@@ -50,9 +50,9 @@ class QueryFilter implements Jsonable
         foreach ($filters as &$filter) {
             $filter = Arr::only((array)$filter, $keys);
             if (count($filter) !== 3) {
-                throw new RuntimeException('filter not valid.' . "\n"
-                    . 'filter must have these keys: ' . join(', ', $keys) .
-                    ".\n\r while " . print_r($constFilters, true));
+                throw new RuntimeException('invalid filter. filter must have these keys: ' .
+                    join(', ', $keys) .
+                    ". input filter: " . print_r($constFilters, true));
             }
             $filter = (object)$filter;
         }
@@ -95,7 +95,7 @@ class QueryFilter implements Jsonable
         $constSortData = $sortData;
         $sortData = Arr::only($sortData, ['field', 'dir']);
         if (count($sortData) !== 2) {
-            throw new RuntimeException('order data not valid.' . "\n" . print_r($constSortData, true));
+            throw new RuntimeException('invalid order data. ' . print_r($constSortData, true));
         }
         return (object) $sortData;
     }
@@ -219,7 +219,7 @@ class QueryFilter implements Jsonable
         if (is_string($sumField)) {
             return $this->sumFields[] = $sumField;
         } else {
-            throw new RuntimeException('sum field not valid.');
+            throw new RuntimeException('invalid sum field.');
         }
     }
 
@@ -235,13 +235,13 @@ class QueryFilter implements Jsonable
     {
         $options |= JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE;
         $data = [];
-        if (!empty($this->filters)) {
+        if (!empty($this->getFilters())) {
             $data['filters'] = $this->filters;
         }
         if (!empty($page = $this->getPage())) {
             $data['page'] = $page;
         }
-        if (!empty($this->sortData)) {
+        if (!empty($this->getSortData())) {
             $data['sort'] = $this->sortData;
         }
         return json_encode($data, JSON_THROW_ON_ERROR | $options);
