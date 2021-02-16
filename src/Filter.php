@@ -5,6 +5,7 @@ namespace Omalizadeh\QueryFilter;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
+use InvalidArgumentException;
 
 class Filter extends QueryFilter
 {
@@ -12,6 +13,8 @@ class Filter extends QueryFilter
     protected $filterableAttributes = [];
     protected $filterableRelations = [];
     protected $summableAttributes = [];
+    protected $maxPaginationLimit = 200;
+    protected $hasFiltersWithoutPagination = false;
 
     /**
      * PostFilter constructor.
@@ -37,7 +40,7 @@ class Filter extends QueryFilter
     protected function setParameters(): void
     {
         $requestData = json_decode(
-            $this->request->get('filter', '[]'),
+            $this->request->get('filter', '{}'),
             true,
             512,
             JSON_THROW_ON_ERROR
@@ -49,6 +52,11 @@ class Filter extends QueryFilter
         $page = Arr::get($requestData, 'page', []);
         if (!empty($page)) {
             $this->setPage($page);
+            if ($this->getLimit() > $this->getMaxPaginationLimit()) {
+                throw new InvalidArgumentException('pagination limit value is out of range. max valid value: ' . $this->getMaxPaginationLimit());
+            }
+        } elseif (!$this->canFilterWithoutPagination()) {
+            throw new InvalidArgumentException('cannot filter without pagination.');
         }
         $filters = Arr::get($requestData, 'filters', []);
         if (!empty($filters)) {
@@ -371,6 +379,16 @@ class Filter extends QueryFilter
             $filter->op = 'not';
         }
         return $filter;
+    }
+
+    protected function getMaxPaginationLimit()
+    {
+        return $this->maxPaginationLimit;
+    }
+
+    protected function canFilterWithoutPagination()
+    {
+        return (bool) $this->hasFiltersWithoutPagination;
     }
 
     /**
