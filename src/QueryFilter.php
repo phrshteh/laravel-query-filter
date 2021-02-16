@@ -14,6 +14,11 @@ class QueryFilter implements Jsonable
     protected $offset = null;
     protected $limit = null;
 
+    public function __construct(array $filtersList = [])
+    {
+        $this->setFilters($filtersList);
+    }
+
     /**
      * @param  array  $filters
      *
