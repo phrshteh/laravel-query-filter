@@ -14,7 +14,7 @@ class Filter extends QueryFilter
     protected $filterableRelations = [];
     protected $summableAttributes = [];
     protected $maxPaginationLimit = 200;
-    protected $hasFiltersWithoutPagination = false;
+    protected $hasFiltersWithoutPagination = true;
 
     /**
      * PostFilter constructor.
