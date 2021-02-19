@@ -10,8 +10,16 @@ class {{ class }} extends Filter
     public function __construct(Request $request)
     {
         parent::__construct($request);
+        $this->sortableAttributes = [];
         $this->filterableAttributes = [];
         $this->filterableRelations = [];
         $this->summableAttributes = [];
+
+        // Max valid limit for pagination (records per page)
+        $this->maxPaginationLimit = 500;
+
+        // can send filter without pagination
+        // has huge performance and memory consumption impact
+        $this->hasFiltersWithoutPagination = false;
     }
 }

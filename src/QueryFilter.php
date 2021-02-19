@@ -4,7 +4,7 @@ namespace Omalizadeh\QueryFilter;
 
 use Illuminate\Contracts\Support\Jsonable;
 use Illuminate\Support\Arr;
-use RuntimeException;
+use Omalizadeh\QueryFilter\Exceptions\InvalidFilterException;
 
 class QueryFilter implements Jsonable
 {
@@ -13,6 +13,11 @@ class QueryFilter implements Jsonable
     protected $sumFields = [];
     protected $offset = null;
     protected $limit = null;
+
+    public function __construct(array $filtersList = [])
+    {
+        $this->setFilters($filtersList);
+    }
 
     /**
      * @param  array  $filters
@@ -45,9 +50,9 @@ class QueryFilter implements Jsonable
         foreach ($filters as &$filter) {
             $filter = Arr::only((array)$filter, $keys);
             if (count($filter) !== 3) {
-                throw new RuntimeException('filter not valid.' . "\n"
-                    . 'filter must have these keys: ' . join(', ', $keys) .
-                    ".\n\r while " . print_r($constFilters, true));
+                throw new InvalidFilterException('invalid filter. filter must have these keys: ' .
+                    join(', ', $keys) .
+                    ". input filter: " . print_r($constFilters, true));
             }
             $filter = (object)$filter;
         }
@@ -60,7 +65,7 @@ class QueryFilter implements Jsonable
      *
      * @return QueryFilter
      */
-    public function orderBy($field, $dir)
+    public function orderBy(string $field, string $dir)
     {
         return $this->addOrderBy([
             'field' => $field,
@@ -90,7 +95,7 @@ class QueryFilter implements Jsonable
         $constSortData = $sortData;
         $sortData = Arr::only($sortData, ['field', 'dir']);
         if (count($sortData) !== 2) {
-            throw new RuntimeException('order data not valid.' . "\n" . print_r($constSortData, true));
+            throw new InvalidFilterException('invalid order data. ' . print_r($constSortData, true));
         }
         return (object) $sortData;
     }
@@ -122,8 +127,8 @@ class QueryFilter implements Jsonable
     public function getPage(): array
     {
         return [
-            'limit' => $this->limit,
-            'offset' => $this->offset
+            'limit' => $this->getLimit(),
+            'offset' => $this->getOffset()
         ];
     }
 
@@ -134,16 +139,16 @@ class QueryFilter implements Jsonable
      */
     public function setPage(array $page): QueryFilter
     {
-        if (!empty($page['limit'])) {
+        if (!empty($page['limit']) and is_int($page['limit'])) {
             $this->setLimit($page['limit']);
         }
-        if (isset($page['offset'])) {
+        if (isset($page['offset']) and is_int($page['offset'])) {
             $this->setOffset($page['offset']);
         }
         return $this;
     }
 
-    public function getOffset()
+    public function getOffset(): int
     {
         return $this->offset;
     }
@@ -159,7 +164,7 @@ class QueryFilter implements Jsonable
         return $this;
     }
 
-    public function getLimit()
+    public function getLimit(): int
     {
         return $this->limit;
     }
@@ -209,13 +214,9 @@ class QueryFilter implements Jsonable
         return $this;
     }
 
-    public function addSumField($sumField)
+    public function addSumField(string $sumField)
     {
-        if (is_string($sumField)) {
-            return $this->sumFields[] = $sumField;
-        } else {
-            throw new RuntimeException('sum field not valid.');
-        }
+        return $this->sumFields[] = $sumField;
     }
 
     /**
@@ -230,13 +231,13 @@ class QueryFilter implements Jsonable
     {
         $options |= JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE;
         $data = [];
-        if (!empty($this->filters)) {
+        if (!empty($this->getFilters())) {
             $data['filters'] = $this->filters;
         }
         if (!empty($page = $this->getPage())) {
             $data['page'] = $page;
         }
-        if (!empty($this->sortData)) {
+        if (!empty($this->getSortData())) {
             $data['sort'] = $this->sortData;
         }
         return json_encode($data, JSON_THROW_ON_ERROR | $options);

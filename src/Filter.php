@@ -5,13 +5,18 @@ namespace Omalizadeh\QueryFilter;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
+use JsonException;
+use Omalizadeh\QueryFilter\Exceptions\InvalidFilterException;
 
 class Filter extends QueryFilter
 {
     protected $request;
     protected $filterableAttributes = [];
+    protected $sortableAttributes = [];
     protected $filterableRelations = [];
     protected $summableAttributes = [];
+    protected $maxPaginationLimit = 500;
+    protected $hasFiltersWithoutPagination = true;
 
     /**
      * PostFilter constructor.
@@ -36,12 +41,16 @@ class Filter extends QueryFilter
      */
     protected function setParameters(): void
     {
-        $requestData = json_decode(
-            $this->request->get('filter', '[]'),
-            true,
-            512,
-            JSON_THROW_ON_ERROR
-        );
+        try {
+            $requestData = json_decode(
+                $this->request->get('filter', '{}'),
+                true,
+                512,
+                JSON_THROW_ON_ERROR
+            );
+        } catch (JsonException $ex) {
+            throw new InvalidFilterException('cannot parse json filter. check json filter structure.');
+        }
         $sortData = Arr::get($requestData, 'sort', []);
         if (!empty($sortData)) {
             $this->setSortData($sortData);
@@ -78,11 +87,14 @@ class Filter extends QueryFilter
             $entries = $this->sort($entries);
         }
         $count = $entries->count();
-        if ($this->hasLimit()) {
-            $entries = $entries->limit($this->getLimit());
-            if ($this->hasOffset()) {
-                $entries = $entries->offset($this->getOffset());
+        if ($this->hasPage()) {
+            if ($this->getLimit() > $this->getMaxPaginationLimit()) {
+                throw new InvalidFilterException('pagination limit value is out of range. max valid value: ' . $this->getMaxPaginationLimit());
             }
+            $entries = $entries->limit($this->getLimit());
+            $entries = $entries->offset($this->getOffset());
+        } elseif (!$this->canFilterWithoutPagination()) {
+            throw new InvalidFilterException('cannot filter without pagination.');
         }
         return array($entries, $count, $sum ?? []);
     }
@@ -295,7 +307,7 @@ class Filter extends QueryFilter
      */
     protected function setFilterRelationKey($item, $keyName)
     {
-        if (!empty($keyName)) {
+        if (!empty($keyName) and is_string($keyName)) {
             $item->field = $keyName;
         }
         return $item;
@@ -332,7 +344,9 @@ class Filter extends QueryFilter
         foreach ($this->getSortData() as $sort) {
             $field = $sort->field;
             $dir = $sort->dir;
-            $entries = $entries->orderBy($field, $dir);
+            if ($this->hasSortableAttribute($field)) {
+                $entries = $entries->orderBy($field, $dir);
+            }
         }
         return $entries;
     }
@@ -355,22 +369,36 @@ class Filter extends QueryFilter
      */
     protected function sanitizeFilter(object $filter)
     {
-        if (is_array($filter->value) and !in_array($filter->op, ['in', 'not'], true)) {
-            if ($filter->op === '=') {
-                $filter->op = 'in';
-            } else {
+        if ($this->isValidOperator($filter->op)) {
+            if (is_array($filter->value) and !in_array($filter->op, ['in', 'not'], true)) {
+                if ($filter->op === '=') {
+                    $filter->op = 'in';
+                } else {
+                    $filter->op = 'not';
+                }
+            } elseif ($filter->op === 'like' or $filter->op === 'not like') {
+                $filter->value = '%' . $filter->value . '%';
+            } elseif ($filter->op === 'is' and $filter->value !== null) {
+                $filter->op = '=';
+            } elseif ($filter->op === '=' and $filter->value === null) {
+                $filter->op = 'is';
+            } elseif (($filter->op === '!=' or $filter->op === '<>') and $filter->value === null) {
                 $filter->op = 'not';
             }
-        } elseif ($filter->op === 'like') {
-            $filter->value = '%' . $filter->value . '%';
-        } elseif ($filter->op === 'is' and $filter->value !== null) {
-            $filter->op = '=';
-        } elseif ($filter->op === '=' and $filter->value === null) {
-            $filter->op = 'is';
-        } elseif (($filter->op === '!=' or $filter->op === '<>') and $filter->value === null) {
-            $filter->op = 'not';
+            return $filter;
+        } else {
+            throw new InvalidFilterException('filter op is invalid. unknown op: ' . $filter->op);
         }
-        return $filter;
+    }
+
+    protected function getMaxPaginationLimit()
+    {
+        return $this->maxPaginationLimit;
+    }
+
+    protected function canFilterWithoutPagination()
+    {
+        return (bool) $this->hasFiltersWithoutPagination;
     }
 
     /**
@@ -416,7 +444,7 @@ class Filter extends QueryFilter
     /**
      * @return bool
      */
-    protected function hasFilter(): bool
+    public function hasFilter(): bool
     {
         return !empty($this->filters);
     }
@@ -424,7 +452,15 @@ class Filter extends QueryFilter
     /**
      * @return bool
      */
-    protected function hasSort(): bool
+    public function hasPage(): bool
+    {
+        return $this->hasOffset() and $this->hasLimit();
+    }
+
+    /**
+     * @return bool
+     */
+    public function hasSort(): bool
     {
         return !empty($this->sortData);
     }
@@ -432,7 +468,7 @@ class Filter extends QueryFilter
     /**
      * @return bool
      */
-    protected function hasSum(): bool
+    public function hasSum(): bool
     {
         return !empty($this->sumFields);
     }
@@ -473,9 +509,36 @@ class Filter extends QueryFilter
     /**
      * @return bool
      */
+    protected function hasSortableAttribute($fieldName): bool
+    {
+        return !empty($this->sortableAttributes)
+            and in_array($fieldName, $this->sortableAttributes, true);
+    }
+
+    /**
+     * @return bool
+     */
     protected function hasSummableAttribute($fieldName): bool
     {
         return !empty($this->summableAttributes)
             and in_array($fieldName, $this->summableAttributes, true);
+    }
+
+    /**
+     * @return bool
+     */
+    protected function isValidOperator($op): bool
+    {
+        $operators = [
+            '=',
+            '!=',
+            '<>',
+            'like',
+            'not like',
+            'is',
+            'not',
+            'in'
+        ];
+        return in_array($op, $operators, true);
     }
 }
