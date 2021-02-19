@@ -49,9 +49,7 @@ class Filter extends QueryFilter
                 JSON_THROW_ON_ERROR
             );
         } catch (JsonException $ex) {
-            return response()->json([
-                'message' => 'cannot parse json filter. check json filter structure.'
-            ], 422);
+            throw new InvalidFilterException('cannot parse json filter. check json filter structure.');
         }
         $sortData = Arr::get($requestData, 'sort', []);
         if (!empty($sortData)) {
@@ -60,11 +58,6 @@ class Filter extends QueryFilter
         $page = Arr::get($requestData, 'page', []);
         if (!empty($page)) {
             $this->setPage($page);
-            if ($this->getLimit() > $this->getMaxPaginationLimit()) {
-                throw new InvalidFilterException('pagination limit value is out of range. max valid value: ' . $this->getMaxPaginationLimit());
-            }
-        } elseif (!$this->canFilterWithoutPagination()) {
-            throw new InvalidFilterException('cannot filter without pagination.');
         }
         $filters = Arr::get($requestData, 'filters', []);
         if (!empty($filters)) {
@@ -94,11 +87,14 @@ class Filter extends QueryFilter
             $entries = $this->sort($entries);
         }
         $count = $entries->count();
-        if ($this->hasLimit()) {
-            $entries = $entries->limit($this->getLimit());
-            if ($this->hasOffset()) {
-                $entries = $entries->offset($this->getOffset());
+        if ($this->hasPage()) {
+            if ($this->getLimit() > $this->getMaxPaginationLimit()) {
+                throw new InvalidFilterException('pagination limit value is out of range. max valid value: ' . $this->getMaxPaginationLimit());
             }
+            $entries = $entries->limit($this->getLimit());
+            $entries = $entries->offset($this->getOffset());
+        } elseif (!$this->canFilterWithoutPagination()) {
+            throw new InvalidFilterException('cannot filter without pagination.');
         }
         return array($entries, $count, $sum ?? []);
     }
@@ -311,7 +307,7 @@ class Filter extends QueryFilter
      */
     protected function setFilterRelationKey($item, $keyName)
     {
-        if (!empty($keyName)) {
+        if (!empty($keyName) and is_string($keyName)) {
             $item->field = $keyName;
         }
         return $item;
