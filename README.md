@@ -70,14 +70,16 @@ public function index(AdminFilter $filters)
 }
 ```
 ### Available Operands
-| Operand  | Value |
-|---|---|
-| =  | string/numeric |
-| <> | string/numeric |
-| like | string |
-| is | NULL |
-| in | array |
-| not | NULL |
+| Operators  | Value | Description |
+|---|---|---|
+| =  | string/numeric | Equal to value |
+| != | string/numeric | Not equal to value |
+| <> | string/numeric | Not equal to value |
+| like | string | Like string value |
+| not like | string | Not like string |
+| in | array | Field value is in given array |
+| not | NULL/array | Field is not null (for null value)/ Not in given array |
+| is | NULL | Field is null |
 ### Query String Exact Format
 Coming Soon...
 ## License
