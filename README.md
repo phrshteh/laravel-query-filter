@@ -21,6 +21,11 @@ use Omalizadeh\QueryFilter\Traits\HasFilter;
 class Admin extends Model
 {
     use HasFilter;
+
+    public function profile()
+    {
+        return $this->hasOne(Profile::class);
+    }
 }
 ```
 Set filterable attributes, relations and other options:
@@ -47,6 +52,11 @@ class AdminFilter extends Filter
             'is_active'
         ];
         $this->filterableRelations = [
+            /*  'relation' => [
+            *      'attribute1',
+            *      'attribute2' 
+            *   ]
+            */             
             'profile' => [
                 'gender',
                 'first_name',
@@ -56,7 +66,9 @@ class AdminFilter extends Filter
                 'birth_date'
             ]
         ];
-        $this->summableAttributes = [];
+        $this->summableAttributes = [
+            'total_sold'
+        ];
     }
 }
 ```
@@ -68,8 +80,9 @@ In Controller:
 ```php
 public function index(AdminFilter $filters)
 {
-    list($admins, $count) = Admin::filter($filters);
+    list($admins, $count, $sum) = Admin::filter($filters);
     // count: total resources based on filters
+    // sum: sum of given attributes in filter if there is any
     $admins = $admins->with('profile')->get();
     // do stuff and return response
 }
@@ -106,6 +119,9 @@ Then json filter will be:
         [   
             {"field":"first_name","op":"like","value":"omid"},
         ]
+    ],
+    "sum": [
+        "total_sold"
     ]
 }
 ```
