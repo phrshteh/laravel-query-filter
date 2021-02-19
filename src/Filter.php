@@ -387,7 +387,7 @@ class Filter extends QueryFilter
             }
             return $filter;
         } else {
-            throw new InvalidFilterException('filter op is invalid.');
+            throw new InvalidFilterException('filter op is invalid. unknown op: ' . $filter->op);
         }
     }
 
