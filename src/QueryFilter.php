@@ -4,7 +4,7 @@ namespace Omalizadeh\QueryFilter;
 
 use Illuminate\Contracts\Support\Jsonable;
 use Illuminate\Support\Arr;
-use RuntimeException;
+use Omalizadeh\QueryFilter\Exceptions\InvalidFilterException;
 
 class QueryFilter implements Jsonable
 {
@@ -50,7 +50,7 @@ class QueryFilter implements Jsonable
         foreach ($filters as &$filter) {
             $filter = Arr::only((array)$filter, $keys);
             if (count($filter) !== 3) {
-                throw new RuntimeException('invalid filter. filter must have these keys: ' .
+                throw new InvalidFilterException('invalid filter. filter must have these keys: ' .
                     join(', ', $keys) .
                     ". input filter: " . print_r($constFilters, true));
             }
@@ -65,7 +65,7 @@ class QueryFilter implements Jsonable
      *
      * @return QueryFilter
      */
-    public function orderBy($field, $dir)
+    public function orderBy(string $field, string $dir)
     {
         return $this->addOrderBy([
             'field' => $field,
@@ -95,7 +95,7 @@ class QueryFilter implements Jsonable
         $constSortData = $sortData;
         $sortData = Arr::only($sortData, ['field', 'dir']);
         if (count($sortData) !== 2) {
-            throw new RuntimeException('invalid order data. ' . print_r($constSortData, true));
+            throw new InvalidFilterException('invalid order data. ' . print_r($constSortData, true));
         }
         return (object) $sortData;
     }
@@ -214,13 +214,9 @@ class QueryFilter implements Jsonable
         return $this;
     }
 
-    public function addSumField($sumField)
+    public function addSumField(string $sumField)
     {
-        if (is_string($sumField)) {
-            return $this->sumFields[] = $sumField;
-        } else {
-            throw new RuntimeException('invalid sum field.');
-        }
+        return $this->sumFields[] = $sumField;
     }
 
     /**
