@@ -342,9 +342,10 @@ class Filter extends QueryFilter
     protected function sort($entries): Builder
     {
         foreach ($this->getSortData() as $sort) {
+            $sort = $this->sanitizeSort($sort);
             $field = $sort->field;
-            $dir = $sort->dir;
             if ($this->hasSortableAttribute($field)) {
+                $dir = $sort->dir;
                 $entries = $entries->orderBy($field, $dir);
             }
         }
@@ -388,6 +389,21 @@ class Filter extends QueryFilter
             return $filter;
         } else {
             throw new InvalidFilterException('filter op is invalid. unknown op: ' . $filter->op);
+        }
+    }
+
+    /**
+     * @param  object  $sort
+     *
+     * @return object $sort
+     */
+    protected function sanitizeSort(object $sort)
+    {
+        if ($sort->dir === 'desc') {
+            return $sort;
+        } else {
+            $sort->dir = 'asc';
+            return $sort;
         }
     }
 
