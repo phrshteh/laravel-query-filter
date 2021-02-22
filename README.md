@@ -21,6 +21,16 @@ use Omalizadeh\QueryFilter\Traits\HasFilter;
 class Admin extends Model
 {
     use HasFilter;
+
+    public function profile()
+    {
+        return $this->hasOne(Profile::class);
+    }
+
+    public function posts()
+    {
+        return $this->hasMany(Post::class);
+    }
 }
 ```
 Set filterable attributes, relations and other options:
@@ -47,6 +57,11 @@ class AdminFilter extends Filter
             'is_active'
         ];
         $this->filterableRelations = [
+            /*  'relation' => [
+            *      'attribute1',
+            *      'attribute2' 
+            *   ]
+            */             
             'profile' => [
                 'gender',
                 'first_name',
@@ -56,7 +71,10 @@ class AdminFilter extends Filter
                 'birth_date'
             ]
         ];
-        $this->summableAttributes = [];
+        $this->summableAttributes = [
+            // total sold is a column in admins table
+            'total_sold'
+        ];
     }
 }
 ```
@@ -68,25 +86,30 @@ In Controller:
 ```php
 public function index(AdminFilter $filters)
 {
-    list($admins, $count) = Admin::filter($filters);
     // count: total resources based on filters
-    $admins = $admins->with('profile')->get();
+    // sum: sum of given attributes in filter if there is any
+    list($admins, $count, $sum) = Admin::filter($filters);
+    $admins = $admins->with('posts')->get();
     // do stuff and return response
 }
 ```
 ### Available Operators
 | Operators  | Value | Description |
 |---|---|---|
-| =  | string/numeric | Field equal to value |
-| != | string/numeric | Field not equal to value |
-| <> | string/numeric | Field not equal to value |
-| like | string | Field like string value |
-| not like | string | Field not like string |
+| =  | string/numeric | Field is equal to value |
+| >  | string/numeric | Field is greater than value |
+| >=  | string/numeric | Field is greater than or equal to value |
+| <  | string/numeric | Field is lower than value |
+| <=  | string/numeric | Field is lower than or equal to value |
+| != | string/numeric | Field is not equal to value |
+| <> | string/numeric | Field is not equal to value |
+| like | string | Field is like string value |
+| not like | string | Field is not like string |
 | in | array | Field value is in given array |
 | not | NULL/array | Field is not null (for null value)/ Not in given array |
 | is | NULL | Field is null |
 ### Query String Format
-If we want to filter admins table based on following conditions
+Example conditions:
 ```
 (`is_active` = 1 OR `username` like "%omalizadeh%") AND (`first_name` like "%omid%")
 ```
@@ -106,6 +129,9 @@ Then json filter will be:
         [   
             {"field":"first_name","op":"like","value":"omid"},
         ]
+    ],
+    "sum": [
+        "total_sold"
     ]
 }
 ```

@@ -531,6 +531,10 @@ class Filter extends QueryFilter
     {
         $operators = [
             '=',
+            '>',
+            '>=',
+            '<',
+            '<=',
             '!=',
             '<>',
             'like',
