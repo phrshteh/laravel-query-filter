@@ -16,10 +16,9 @@ class {{ class }} extends Filter
         $this->summableAttributes = [];
 
         // Max valid limit for pagination (records per page)
-        $this->maxPaginationLimit = 500;
+        $this->maxPaginationLimit = 1000;
 
-        // can send filter without pagination
-        // has huge performance and memory consumption impact
-        $this->hasFiltersWithoutPagination = false;
+        // Data can be accessed without pagination
+        $this->hasFiltersWithoutPagination = true;
     }
 }

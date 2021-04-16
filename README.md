@@ -3,9 +3,9 @@
 [![Total Downloads](https://poser.pugx.org/omalizadeh/laravel-query-filter/downloads)](https://packagist.org/packages/omalizadeh/laravel-query-filter)
 # Laravel Query Filter
 Laravel query filter provides an elegant way to filter resources via request query string.
-You can specify conditions, parameters and relations in query string to filter eloquent models.
+You can specify conditions in query string to filter eloquent models and resources.
 
-## Usage
+## Installation & Usage
 Install via composer:
 ```
 composer require omalizadeh/laravel-query-filter
@@ -84,6 +84,8 @@ api/admins?filter={"page":{"limit":20,"offset":0},"sort":[{"field":"id","dir":"d
 ```
 In Controller:
 ```php
+use App\Http\Filters\AdminFilter;
+
 public function index(AdminFilter $filters)
 {
     // count: total resources based on filters
