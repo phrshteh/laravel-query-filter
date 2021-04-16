@@ -15,7 +15,7 @@ class Filter extends QueryFilter
     protected $sortableAttributes = [];
     protected $filterableRelations = [];
     protected $summableAttributes = [];
-    protected $maxPaginationLimit = 500;
+    protected $maxPaginationLimit = 1000;
     protected $hasFiltersWithoutPagination = true;
 
     /**
@@ -49,7 +49,7 @@ class Filter extends QueryFilter
                 JSON_THROW_ON_ERROR
             );
         } catch (JsonException $ex) {
-            throw new InvalidFilterException('cannot parse json filter. check json filter structure.');
+            throw new InvalidFilterException('Cannot parse json filter. check json structure.');
         }
         $sortData = Arr::get($requestData, 'sort', []);
         if (!empty($sortData)) {
@@ -89,12 +89,12 @@ class Filter extends QueryFilter
         $count = $entries->count();
         if ($this->hasPage()) {
             if ($this->getLimit() > $this->getMaxPaginationLimit()) {
-                throw new InvalidFilterException('pagination limit value is out of range. max valid value: ' . $this->getMaxPaginationLimit());
+                throw new InvalidFilterException('Pagination limit value is out of range. max valid value: ' . $this->getMaxPaginationLimit());
             }
             $entries = $entries->limit($this->getLimit());
             $entries = $entries->offset($this->getOffset());
         } elseif (!$this->canFilterWithoutPagination()) {
-            throw new InvalidFilterException('cannot filter without pagination.');
+            throw new InvalidFilterException('Cannot filter without pagination.');
         }
         return array($entries, $count, $sum ?? []);
     }
@@ -388,7 +388,7 @@ class Filter extends QueryFilter
             }
             return $filter;
         } else {
-            throw new InvalidFilterException('filter op is invalid. unknown op: ' . $filter->op);
+            throw new InvalidFilterException('Filter operator is invalid. unknown op: ' . $filter->op);
         }
     }
 
