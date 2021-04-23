@@ -87,16 +87,35 @@ class Filter extends QueryFilter
             $entries = $this->sort($entries);
         }
         $count = $entries->count();
+        $entries = $this->applyPagination($entries);
+
+        return array($entries, $count, $sum ?? []);
+    }
+
+    protected function applyPagination(Builder $entries): Builder
+    {
         if ($this->hasPage()) {
             if ($this->getLimit() > $this->getMaxPaginationLimit()) {
-                throw new InvalidFilterException('Pagination limit value is out of range. max valid value: ' . $this->getMaxPaginationLimit());
+                $this->setLimit($this->getMaxPaginationLimit());
             }
-            $entries = $entries->limit($this->getLimit());
-            $entries = $entries->offset($this->getOffset());
+
+            return $this->paginate($entries);
         } elseif (!$this->canFilterWithoutPagination()) {
-            throw new InvalidFilterException('Cannot filter without pagination.');
+            $this->setLimit($this->getMaxPaginationLimit());
+            $this->setOffset(0);
+
+            return $this->paginate($entries);
         }
-        return array($entries, $count, $sum ?? []);
+
+        return $entries;
+    }
+
+    protected function paginate(Builder $entries): Builder
+    {
+        $entries = $entries->limit($this->getLimit());
+        $entries = $entries->offset($this->getOffset());
+
+        return $entries;
     }
 
     /**
