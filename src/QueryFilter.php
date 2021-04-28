@@ -148,7 +148,7 @@ class QueryFilter implements Jsonable
         return $this;
     }
 
-    public function getOffset(): int
+    public function getOffset(): ?int
     {
         return $this->offset;
     }
@@ -164,7 +164,7 @@ class QueryFilter implements Jsonable
         return $this;
     }
 
-    public function getLimit(): int
+    public function getLimit(): ?int
     {
         return $this->limit;
     }
