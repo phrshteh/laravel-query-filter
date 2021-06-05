@@ -2,24 +2,27 @@
 
 namespace Omalizadeh\QueryFilter;
 
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Http\Request;
-use Illuminate\Support\Arr;
 use JsonException;
+use RuntimeException;
+use Illuminate\Support\Arr;
+use Illuminate\Http\Request;
+use Illuminate\Database\Eloquent\Builder;
 use Omalizadeh\QueryFilter\Exceptions\InvalidFilterException;
 
 class Filter extends QueryFilter
 {
+    protected $builder;
     protected $request;
     protected $filterableAttributes = [];
     protected $sortableAttributes = [];
     protected $filterableRelations = [];
+    protected $loadableRelations = [];
     protected $summableAttributes = [];
     protected $maxPaginationLimit = 1000;
     protected $hasFiltersWithoutPagination = true;
 
     /**
-     * PostFilter constructor.
+     * Filter constructor.
      *
      * @param  Request  $request
      *
@@ -63,6 +66,10 @@ class Filter extends QueryFilter
         if (!empty($filters)) {
             $this->setFilters($filters);
         }
+        $withs = Arr::get($requestData, 'with', []);
+        if (!empty($withs)) {
+            $this->setLoadRelations($withs);
+        }
         $sums = Arr::get($requestData, 'sum', []);
         if (!empty($sums)) {
             $this->setSumFields($sums);
@@ -76,20 +83,33 @@ class Filter extends QueryFilter
      */
     public function apply($builder): array
     {
-        $entries = $builder;
         if ($this->hasFilter()) {
-            $entries = $this->applyFilters($builder);
+            $builder = $this->applyFilters($builder);
+        }
+        if ($this->hasWith()) {
+            $builder = $this->load($builder);
         }
         if ($this->hasSum()) {
-            $sum = $this->sum($entries);
+            $sum = $this->sum($builder);
         }
         if ($this->hasSort()) {
-            $entries = $this->sort($entries);
+            $builder = $this->sort($builder);
         }
-        $count = $entries->count();
-        $entries = $this->applyPagination($entries);
+        $count = $builder->count();
+        $builder = $this->applyPagination($builder);
+        $this->builder = $builder;
 
-        return array($entries, $count, $sum ?? []);
+        return array($builder, $count, $sum ?? []);
+    }
+
+    public function toSql()
+    {
+        if (!$this->builder instanceof  Builder) {
+            throw new RuntimeException("Builder is not created.");
+        }
+        $bindings = $this->builder->getBindings();
+        $sql = str_replace('?', '%s', $this->builder->toSql());
+        return vsprintf($sql, $bindings);
     }
 
     protected function applyPagination(Builder $entries): Builder
@@ -213,9 +233,8 @@ class Filter extends QueryFilter
     {
         if ($orCondition) {
             return $query->orWhereIn($item->field, $item->value);
-        } else {
-            return $query->whereIn($item->field, $item->value);
         }
+        return $query->whereIn($item->field, $item->value);
     }
 
     /**
@@ -228,9 +247,8 @@ class Filter extends QueryFilter
     {
         if ($orCondition) {
             return $query->orWhereNotIn($item->field, $item->value);
-        } else {
-            return $query->whereNotIn($item->field, $item->value);
         }
+        return $query->whereNotIn($item->field, $item->value);
     }
 
     /**
@@ -244,9 +262,8 @@ class Filter extends QueryFilter
     {
         if ($orCondition) {
             return $query->orWhereNull($columns);
-        } else {
-            return $query->whereNull($columns);
         }
+        return $query->whereNull($columns);
     }
 
     /**
@@ -261,9 +278,8 @@ class Filter extends QueryFilter
     {
         if ($orCondition) {
             return $query->orWhereNotNull($columns);
-        } else {
-            return $query->whereNotNull($columns);
         }
+        return $query->whereNotNull($columns);
     }
 
     /**
@@ -346,11 +362,25 @@ class Filter extends QueryFilter
             return $entries->orWhereHas($relation, function ($query) use ($filter) {
                 $this->where($query, $filter);
             });
-        } else {
-            return $entries->whereHas($relation, function ($query) use ($filter) {
-                $this->where($query, $filter);
-            });
         }
+        return $entries->whereHas($relation, function ($query) use ($filter) {
+            $this->where($query, $filter);
+        });
+    }
+
+    /**
+     * @param $entries
+     *
+     * @return Builder
+     */
+    protected function load($entries): Builder
+    {
+        foreach ($this->getLoadRelations() as $load) {
+            if ($this->hasLoadableRelation($load)) {
+                $entries = $entries->with($load);
+            }
+        }
+        return $entries;
     }
 
     /**
@@ -406,9 +436,8 @@ class Filter extends QueryFilter
                 $filter->op = 'not';
             }
             return $filter;
-        } else {
-            throw new InvalidFilterException('Filter operator is invalid. unknown op: ' . $filter->op);
         }
+        throw new InvalidFilterException('Filter operator is invalid. unknown op: ' . $filter->op);
     }
 
     /**
@@ -420,10 +449,9 @@ class Filter extends QueryFilter
     {
         if ($sort->dir === 'desc') {
             return $sort;
-        } else {
-            $sort->dir = 'asc';
-            return $sort;
         }
+        $sort->dir = 'asc';
+        return $sort;
     }
 
     protected function getMaxPaginationLimit()
@@ -487,6 +515,14 @@ class Filter extends QueryFilter
     /**
      * @return bool
      */
+    public function hasWith(): bool
+    {
+        return !empty($this->loadRelations);
+    }
+
+    /**
+     * @return bool
+     */
     public function hasPage(): bool
     {
         return $this->hasOffset() and $this->hasLimit();
@@ -539,6 +575,15 @@ class Filter extends QueryFilter
     {
         return !empty($this->filterableAttributes)
             and in_array($fieldName, $this->filterableAttributes, true);
+    }
+
+    /**
+     * @return bool
+     */
+    protected function hasLoadableRelation($relationName): bool
+    {
+        return !empty($this->loadableRelations)
+            and in_array($relationName, $this->loadableRelations, true);
     }
 
     /**

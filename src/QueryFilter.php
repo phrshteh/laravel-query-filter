@@ -11,6 +11,7 @@ class QueryFilter implements Jsonable
     protected $filters = [];
     protected $sortData = [];
     protected $sumFields = [];
+    protected $loadRelations = [];
     protected $offset = null;
     protected $limit = null;
 
@@ -189,6 +190,28 @@ class QueryFilter implements Jsonable
     }
 
     /**
+     * @return array
+     */
+    public function getLoadRelations(): array
+    {
+        return $this->loadRelations;
+    }
+
+    public function setLoadRelations(array $loadRelations): QueryFilter
+    {
+        foreach ($loadRelations as $relation) {
+            $this->addLoadRelation($relation);
+        }
+        return $this;
+    }
+
+    public function addLoadRelation(string $loadRelation): QueryFilter
+    {
+        $this->loadRelations[] = $loadRelation;
+        return $this;
+    }
+
+    /**
      * @param  array  $filtersList
      *
      * @return QueryFilter
@@ -232,13 +255,16 @@ class QueryFilter implements Jsonable
         $options |= JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE;
         $data = [];
         if (!empty($this->getFilters())) {
-            $data['filters'] = $this->filters;
+            $data['filters'] = $this->getFilters();
         }
-        if (!empty($page = $this->getPage())) {
-            $data['page'] = $page;
+        if (!empty($this->getPage())) {
+            $data['page'] = $this->getPage();
         }
         if (!empty($this->getSortData())) {
-            $data['sort'] = $this->sortData;
+            $data['sort'] = $this->getSortData();
+        }
+        if (!empty($this->getLoadRelations())) {
+            $data['with'] = $this->getLoadRelations();
         }
         return json_encode($data, JSON_THROW_ON_ERROR | $options);
     }

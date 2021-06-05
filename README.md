@@ -71,6 +71,9 @@ class AdminFilter extends Filter
                 'birth_date'
             ]
         ];
+        $this->loadableRelations = [
+            'profile'
+        ];
         $this->summableAttributes = [
             // total sold is a column in admins table
             'total_sold'
@@ -79,8 +82,29 @@ class AdminFilter extends Filter
 }
 ```
 Filtering resources from query string using json formatted filter parameter with pagination & sort:
-```
-api/admins?filter={"page":{"limit":20,"offset":0},"sort":[{"field":"id","dir":"desc"}],"filters":[[{"field":"is_active","op":"=","value":"="}]]}
+```json
+api/admins?filter={
+    "page": {
+        "limit": 20,
+        "offset": 0
+    },
+    "sort": [
+        {
+            "field": "id",
+            "dir": "desc"
+        }
+    ],
+    "filters": [
+        [
+            {
+                "field": "is_active",
+                "op": "=",
+                "value": "="
+            }
+        ]
+    ],
+    "with": ["profile"]
+}
 ```
 In Controller:
 ```php
@@ -96,20 +120,20 @@ public function index(AdminFilter $filters)
 }
 ```
 ### Available Operators
-| Operators  | Value | Description |
-|---|---|---|
-| =  | string/numeric | Field is equal to value |
-| >  | string/numeric | Field is greater than value |
-| >=  | string/numeric | Field is greater than or equal to value |
-| <  | string/numeric | Field is lower than value |
-| <=  | string/numeric | Field is lower than or equal to value |
-| != | string/numeric | Field is not equal to value |
-| <> | string/numeric | Field is not equal to value |
-| like | string | Field is like string value |
-| not like | string | Field is not like string |
-| in | array | Field value is in given array |
-| not | NULL/array | Field is not null (for null value)/ Not in given array |
-| is | NULL | Field is null |
+| Operators | Value          | Description                                            |
+| --------- | -------------- | ------------------------------------------------------ |
+| =         | string/numeric | Field is equal to value                                |
+| >         | string/numeric | Field is greater than value                            |
+| >=        | string/numeric | Field is greater than or equal to value                |
+| <         | string/numeric | Field is lower than value                              |
+| <=        | string/numeric | Field is lower than or equal to value                  |
+| !=        | string/numeric | Field is not equal to value                            |
+| <>        | string/numeric | Field is not equal to value                            |
+| like      | string         | Field is like string value                             |
+| not like  | string         | Field is not like string                               |
+| in        | array          | Field value is in given array                          |
+| not       | NULL/array     | Field is not null (for null value)/ Not in given array |
+| is        | NULL           | Field is null                                          |
 ### Query String Format
 Example conditions:
 ```
