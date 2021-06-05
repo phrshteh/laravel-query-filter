@@ -13,6 +13,7 @@ class {{ class }} extends Filter
         $this->sortableAttributes = [];
         $this->filterableAttributes = [];
         $this->filterableRelations = [];
+        $this->loadableRelations = [];
         $this->summableAttributes = [];
 
         // Max valid limit for pagination (records per page)

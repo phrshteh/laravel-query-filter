@@ -11,6 +11,7 @@ class QueryFilter implements Jsonable
     protected $filters = [];
     protected $sortData = [];
     protected $sumFields = [];
+    protected $loadRelations = [];
     protected $offset = null;
     protected $limit = null;
 
@@ -186,6 +187,28 @@ class QueryFilter implements Jsonable
     public function getFilters(): array
     {
         return $this->filters;
+    }
+
+    /**
+     * @return array
+     */
+    public function getLoadRelations(): array
+    {
+        return $this->loadRelations;
+    }
+
+    public function setLoadRelations(array $loadRelations): QueryFilter
+    {
+        foreach ($loadRelations as $relation) {
+            $this->addLoadRelation($relation);
+        }
+        return $this;
+    }
+
+    public function addLoadRelation(string $loadRelation): QueryFilter
+    {
+        $this->loadRelations[] = $loadRelation;
+        return $this;
     }
 
     /**
