@@ -255,13 +255,16 @@ class QueryFilter implements Jsonable
         $options |= JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE;
         $data = [];
         if (!empty($this->getFilters())) {
-            $data['filters'] = $this->filters;
+            $data['filters'] = $this->getFilters();
         }
-        if (!empty($page = $this->getPage())) {
-            $data['page'] = $page;
+        if (!empty($this->getPage())) {
+            $data['page'] = $this->getPage();
         }
         if (!empty($this->getSortData())) {
-            $data['sort'] = $this->sortData;
+            $data['sort'] = $this->getSortData();
+        }
+        if (!empty($this->getLoadRelations())) {
+            $data['with'] = $this->getLoadRelations();
         }
         return json_encode($data, JSON_THROW_ON_ERROR | $options);
     }
