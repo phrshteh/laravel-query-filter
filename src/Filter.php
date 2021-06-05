@@ -2,14 +2,16 @@
 
 namespace Omalizadeh\QueryFilter;
 
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Http\Request;
-use Illuminate\Support\Arr;
 use JsonException;
+use RuntimeException;
+use Illuminate\Support\Arr;
+use Illuminate\Http\Request;
+use Illuminate\Database\Eloquent\Builder;
 use Omalizadeh\QueryFilter\Exceptions\InvalidFilterException;
 
 class Filter extends QueryFilter
 {
+    protected $builder;
     protected $request;
     protected $filterableAttributes = [];
     protected $sortableAttributes = [];
@@ -81,23 +83,33 @@ class Filter extends QueryFilter
      */
     public function apply($builder): array
     {
-        $entries = $builder;
         if ($this->hasFilter()) {
-            $entries = $this->applyFilters($builder);
+            $builder = $this->applyFilters($builder);
         }
         if ($this->hasWith()) {
-            $entries = $this->load($entries);
+            $builder = $this->load($builder);
         }
         if ($this->hasSum()) {
-            $sum = $this->sum($entries);
+            $sum = $this->sum($builder);
         }
         if ($this->hasSort()) {
-            $entries = $this->sort($entries);
+            $builder = $this->sort($builder);
         }
-        $count = $entries->count();
-        $entries = $this->applyPagination($entries);
+        $count = $builder->count();
+        $builder = $this->applyPagination($builder);
+        $this->builder = $builder;
 
-        return array($entries, $count, $sum ?? []);
+        return array($builder, $count, $sum ?? []);
+    }
+
+    public function toSql()
+    {
+        if (!$this->builder instanceof  Builder) {
+            throw new RuntimeException("Builder is not created.");
+        }
+        $bindings = $this->builder->getBindings();
+        $sql = str_replace('?', '%s', $this->builder->toSql());
+        return vsprintf($sql, $bindings);
     }
 
     protected function applyPagination(Builder $entries): Builder
