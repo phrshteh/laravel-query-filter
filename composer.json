@@ -5,6 +5,7 @@
     "type": "library",
     "license": "MIT",
     "keywords": [
+        "laravel",
         "query",
         "filter",
         "resource",
@@ -19,9 +20,26 @@
             "email": "om.alizadeh1@gmail.com"
         }
     ],
+    "require": {
+        "php": "^7.3|^8.0",
+        "ext-json": "*",
+        "illuminate/contracts": "^6.0|^7.0|^8.0",
+        "illuminate/console": "^6.0|^7.0|^8.0",
+        "illuminate/database": "^6.0|^7.0|^8.0",
+        "illuminate/http": "^6.0|^7.0|^8.0",
+        "illuminate/support": "^6.0|^7.0|^8.0"
+    },
     "autoload": {
         "psr-4": {
             "Omalizadeh\\QueryFilter\\": "src/"
+        }
+    },
+    "require-dev": {
+        "orchestra/testbench": "^6.19"
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Omalizadeh\\QueryFilter\\Tests\\": "tests/"
         }
     },
     "extra": {
@@ -31,10 +49,6 @@
             ]
         }
     },
-    "require": {
-        "php": "^7.3|^8.0",
-        "laravel/framework": "^6.0|^7.0|^8.0",
-        "ext-json": "*"
-    },
-    "minimum-stability": "stable"
+    "minimum-stability": "dev",
+    "prefer-stable": true
 }
