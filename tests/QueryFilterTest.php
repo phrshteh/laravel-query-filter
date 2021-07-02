@@ -3,6 +3,10 @@
 namespace Omalizadeh\QueryFilter\Tests;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
+use Omalizadeh\QueryFilter\QueryFilter;
+use Omalizadeh\QueryFilter\Tests\Filters\UserFilter;
+use Omalizadeh\QueryFilter\Tests\Models\User;
 
 class QueryFilterTest extends TestCase
 {
@@ -16,8 +20,25 @@ class QueryFilterTest extends TestCase
     }
 
     /** @test */
-    public function test()
+    public function fieldEqualsFilterTest()
     {
-        $this->assertTrue(true);
+        $filters = new QueryFilter([
+            [
+                [
+                    'field' => 'is_active',
+                    'op' => '=',
+                    'value' => true
+                ]
+            ]
+        ]);
+        $request = new Request([
+            'filter' => $filters->toJson()
+        ]);
+        $filters = new UserFilter($request);
+        [$users, $count] = User::filter($filters);
+        $users = $users->get();
+        foreach ($users as $user) {
+            $this->assertTrue($user->isActive());
+        }
     }
 }
