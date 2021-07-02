@@ -12,4 +12,23 @@ class User extends Authenticatable
     protected $guarded = [
         'id'
     ];
+
+    protected $casts = [
+        'is_active' => 'boolean'
+    ];
+
+    public function isMale()
+    {
+        return !is_null($this->gender) and $this->gender == true;
+    }
+
+    public function isFemale()
+    {
+        return !is_null($this->gender) and $this->gender == false;
+    }
+
+    public function isActive()
+    {
+        return $this->is_active;
+    }
 }
