@@ -20,6 +20,19 @@ class QueryFilterTest extends TestCase
     }
 
     /** @test */
+    public function getDataWithoutFilterTest()
+    {
+        $filters = new QueryFilter();
+        $request = new Request([
+            'filter' => $filters->toJson()
+        ]);
+        $filters = new UserFilter($request);
+        [$users, $count] = User::filter($filters);
+        $users = $users->get();
+        $this->assertCount($count, $users);
+    }
+
+    /** @test */
     public function fieldEqualsFilterTest()
     {
         $filters = new QueryFilter([
