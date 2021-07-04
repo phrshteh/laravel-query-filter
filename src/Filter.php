@@ -46,7 +46,7 @@ class Filter extends QueryFilter
     {
         try {
             $requestData = json_decode(
-                $this->request->get('filter', '{}'),
+                $this->getRequest()->input('filter', '{}'),
                 true,
                 512,
                 JSON_THROW_ON_ERROR
@@ -110,6 +110,17 @@ class Filter extends QueryFilter
         $bindings = $this->builder->getBindings();
         $sql = str_replace('?', '%s', $this->builder->toSql());
         return vsprintf($sql, $bindings);
+    }
+
+    public function getFilterFields(): array
+    {
+        $filters = $this->getFilters();
+        $fields = [];
+        foreach ($filters as $filter) {
+            $fields[] = collect($filter)->pluck('field')->toArray();
+        }
+        $fields = array_unique(Arr::flatten($fields));
+        return array_intersect($this->filterableAttributes, $fields);
     }
 
     protected function applyPagination(Builder $entries): Builder
@@ -602,27 +613,5 @@ class Filter extends QueryFilter
     {
         return !empty($this->summableAttributes)
             and in_array($fieldName, $this->summableAttributes, true);
-    }
-
-    /**
-     * @return bool
-     */
-    protected function isValidOperator($op): bool
-    {
-        $operators = [
-            '=',
-            '>',
-            '>=',
-            '<',
-            '<=',
-            '!=',
-            '<>',
-            'like',
-            'not like',
-            'is',
-            'not',
-            'in'
-        ];
-        return in_array($op, $operators, true);
     }
 }
