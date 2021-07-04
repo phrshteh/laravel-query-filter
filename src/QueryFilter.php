@@ -243,6 +243,28 @@ class QueryFilter implements Jsonable
     }
 
     /**
+     * @return bool
+     */
+    protected function isValidOperator($op): bool
+    {
+        $operators = [
+            '=',
+            '>',
+            '>=',
+            '<',
+            '<=',
+            '!=',
+            '<>',
+            'like',
+            'not like',
+            'is',
+            'not',
+            'in'
+        ];
+        return in_array($op, $operators, true);
+    }
+
+    /**
      * Encode a value as JSON.
      *
      * @param  int  $options
