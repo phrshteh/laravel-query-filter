@@ -41,4 +41,9 @@ class TestCase extends BaseTestCase
     {
         return (new TestUserSeeder)->run();
     }
+
+    protected function getFilterPath(?string $filterFileName = null): string
+    {
+        return app_path("Http\Filters" . "\\{$filterFileName}");
+    }
 }
