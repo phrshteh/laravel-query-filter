@@ -14,20 +14,21 @@ class User extends Authenticatable
     ];
 
     protected $casts = [
+        'gender' => 'boolean',
         'is_active' => 'boolean'
     ];
 
-    public function isMale()
+    public function isMale(): bool
     {
-        return !is_null($this->gender) and $this->gender == true;
+        return $this->gender === true;
     }
 
-    public function isFemale()
+    public function isFemale(): bool
     {
-        return !is_null($this->gender) and $this->gender == false;
+        return !is_null($this->gender) && $this->gender === false;
     }
 
-    public function isActive()
+    public function isActive(): bool
     {
         return $this->is_active;
     }

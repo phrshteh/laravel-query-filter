@@ -17,7 +17,7 @@ class MakeFilterCommand extends GeneratorCommand
 
     protected function getDefaultNamespace($rootNamespace)
     {
-        return $rootNamespace . '\Http\Filters';
+        return $rootNamespace . '\Filters';
     }
 
     protected function getArguments()

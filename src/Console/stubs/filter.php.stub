@@ -2,24 +2,50 @@
 
 namespace {{ namespace }};
 
-use Omalizadeh\QueryFilter\Filter;
-use Illuminate\Http\Request;
+use Omalizadeh\QueryFilter\ModelFilter;
 
-class {{ class }} extends Filter
+class {{ class }} extends ModelFilter
 {
-    public function __construct(Request $request)
+    public function getSortableAttributes(): array
     {
-        parent::__construct($request);
-        $this->sortableAttributes = [];
-        $this->filterableAttributes = [];
-        $this->filterableRelations = [];
-        $this->loadableRelations = [];
-        $this->summableAttributes = [];
+        return [
+            //
+        ];
+    }
 
-        // Max valid limit for pagination (records per page)
-        $this->maxPaginationLimit = 1000;
+    public function getSummableAttributes(): array
+    {
+        return [
+            //
+        ];
+    }
 
-        // Data can be accessed without pagination
-        $this->hasFiltersWithoutPagination = true;
+    public function getFilterableAttributes(): array
+    {
+        return [
+            //
+        ];
+    }
+
+    /**
+     * 'relation_name' => [
+     *      'filter_key' => 'db_origin_key',
+     *  ],
+     * 'relation_name' => [
+     *      'filter_and_db_key',
+     *  ],
+     */
+    public function getFilterableRelations(): array
+    {
+        return [
+            //
+        ];
+    }
+
+    public function getLoadableRelations(): array
+    {
+        return [
+            //
+        ];
     }
 }

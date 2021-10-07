@@ -4,7 +4,7 @@ namespace Omalizadeh\QueryFilter\Tests;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
-use Omalizadeh\QueryFilter\QueryFilter;
+use Omalizadeh\QueryFilter\Filter;
 use Omalizadeh\QueryFilter\Tests\Filters\UserFilter;
 use Omalizadeh\QueryFilter\Tests\Models\User;
 
@@ -20,22 +20,17 @@ class QueryFilterTest extends TestCase
     }
 
     /** @test */
-    public function getDataWithoutFilterTest()
+    public function getDataWithoutFilterTest(): void
     {
-        $filters = new QueryFilter();
-        $request = new Request([
-            'filter' => $filters->toJson()
-        ]);
-        $filters = new UserFilter($request);
-        [$users, $count] = User::filter($filters);
-        $users = $users->get();
-        $this->assertCount($count, $users);
+        $filterResult = User::filter((new UserFilter(new Request())));
+        $users = $filterResult->getData();
+        $this->assertCount($filterResult->getCount(), $users);
     }
 
     /** @test */
-    public function fieldEqualsFilterTest()
+    public function fieldEqualsFilterTest(): void
     {
-        $filters = new QueryFilter([
+        $filters = new Filter([
             [
                 [
                     'field' => 'is_active',
@@ -48,8 +43,8 @@ class QueryFilterTest extends TestCase
             'filter' => $filters->toJson()
         ]);
         $filters = new UserFilter($request);
-        [$users, $count] = User::filter($filters);
-        $users = $users->get();
+        $filterResult = User::filter($filters);
+        $users = $filterResult->getData();
         foreach ($users as $user) {
             $this->assertTrue($user->isActive());
         }

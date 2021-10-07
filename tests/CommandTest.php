@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\File;
 class CommandTest extends TestCase
 {
     /** @test */
-    public function makeFilterCommandCreatesFilterClassTest()
+    public function makeFilterCommandCreatesFilterClassTest(): void
     {
         $filterFileName = 'TestFilter.php';
         if (File::exists($this->getFilterPath($filterFileName))) {
