@@ -19,6 +19,12 @@ class Filter implements Jsonable
     protected ?int $offset = null;
     protected ?int $limit = null;
 
+    /**
+     * @throws InvalidSortException
+     * @throws InvalidRelationException
+     * @throws InvalidSumException
+     * @throws InvalidFilterException
+     */
     public function __construct(
         array $filterGroups = [],
         array $sorts = [],
@@ -35,6 +41,9 @@ class Filter implements Jsonable
         $this->setLimit($limit);
     }
 
+    /**
+     * @throws InvalidFilterException
+     */
     public function setFilterGroups(array $filterGroups): Filter
     {
         foreach ($filterGroups as $filterGroup) {
@@ -48,6 +57,9 @@ class Filter implements Jsonable
         return $this;
     }
 
+    /**
+     * @throws InvalidFilterException
+     */
     public function addFilterGroup(array $filterGroup): Filter
     {
         foreach ($filterGroup as &$filter) {
@@ -59,17 +71,25 @@ class Filter implements Jsonable
         return $this;
     }
 
-    public function addFilter(string $field, string $op, $value): Filter
+    /**
+     * @throws InvalidFilterException
+     */
+    public function addFilter(string $attribute, $op = null, $value = null): Filter
     {
-        $this->validateOperator($op);
+        if (func_num_args() === 2) {
+            $value = $op;
+            $op = '=';
+        } else {
+            $this->validateOperator($op);
+        }
 
-        $this->filterGroups[] = [
-            [
-                'field' => $field,
-                'op' => $op,
-                'value' => $value
-            ]
-        ];
+        $filter = $this->validateFilter([
+            'field' => $attribute,
+            'op' => $op,
+            'value' => $value
+        ]);
+
+        $this->filterGroups[] = [$filter];
 
         return $this;
     }
@@ -85,7 +105,7 @@ class Filter implements Jsonable
                 throw new InvalidSortException('Field or dir key not found in sort array.');
             }
 
-            $this->sort($sort['field'], $sort['dir']);
+            $this->addSort($sort['field'], $sort['dir']);
         }
 
         return $this;
@@ -106,7 +126,7 @@ class Filter implements Jsonable
                 throw new InvalidSumException('Sums array must contain only non-empty strings of field names.');
             }
 
-            $this->sum($sum);
+            $this->addSum($sum);
         }
 
         return $this;
@@ -119,30 +139,30 @@ class Filter implements Jsonable
                 throw new InvalidRelationException('Relations array must contain only non-empty strings.');
             }
 
-            $this->with($relation);
+            $this->addRelation($relation);
         }
 
         return $this;
     }
 
-    public function sort(string $field, string $dir = 'asc'): Filter
+    public function addSort(string $attribute, string $dir = 'asc'): Filter
     {
         $this->sorts[] = [
-            'field' => $field,
+            'field' => $attribute,
             'dir' => strtolower($dir) === 'desc' ? 'desc' : 'asc'
         ];
 
         return $this;
     }
 
-    public function sum(string $field): Filter
+    public function addSum(string $attribute): Filter
     {
-        $this->sums[] = $field;
+        $this->sums[] = $attribute;
 
         return $this;
     }
 
-    public function with(string $relation): Filter
+    public function addRelation(string $relation): Filter
     {
         $this->relations[] = $relation;
 
@@ -163,16 +183,16 @@ class Filter implements Jsonable
         return $this;
     }
 
-    public function getFilterFields(): array
+    public function getFilteredAttributes(): array
     {
         $filterGroups = $this->getFilterGroups();
-        $fields = [];
+        $filteredAttributes = [];
 
         foreach ($filterGroups as $filter) {
-            $fields[] = collect($filter)->pluck('field')->toArray();
+            $filteredAttributes[] = collect($filter)->pluck('field')->toArray();
         }
 
-        return array_unique(Arr::flatten($fields));
+        return array_unique(Arr::flatten($filteredAttributes));
     }
 
     /**
@@ -340,6 +360,9 @@ class Filter implements Jsonable
         return $filter;
     }
 
+    /**
+     * @throws InvalidFilterException
+     */
     protected function validateOperator(string $op): void
     {
         if (!in_array($op, $this->getValidOperators(), true)) {
