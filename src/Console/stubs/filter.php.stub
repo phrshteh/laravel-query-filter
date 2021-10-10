@@ -29,10 +29,10 @@ class {{ class }} extends ModelFilter
 
     /**
      * 'relation_name' => [
-     *      'filter_key' => 'db_origin_key',
+     *      'filter_key' => 'db_column_name',
      *  ],
      * 'relation_name' => [
-     *      'filter_and_db_key',
+     *      'filter_key_and_db_column_name',
      *  ],
      */
     public function getFilterableRelations(): array
