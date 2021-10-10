@@ -9,8 +9,7 @@ use Omalizadeh\QueryFilter\Exceptions\InvalidFilterException;
 
 abstract class ModelFilter
 {
-    public int $maxPaginationLimit = 1000;
-
+    protected int $maxPaginationLimit = 1000;
     protected Request $request;
     protected Filter $filter;
 
@@ -100,7 +99,7 @@ abstract class ModelFilter
      * @throws InvalidFilterException
      * @throws Exceptions\InvalidSumException
      */
-    protected function createFilterFromRequest(): Filter
+    private function createFilterFromRequest(): Filter
     {
         try {
             $requestData = json_decode(
