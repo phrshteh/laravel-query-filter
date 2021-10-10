@@ -142,7 +142,7 @@ class QueryFilter
      * @param  bool  $orCondition
      * @return Builder
      */
-    protected function whereNotIn(Builder $query, array $filter, bool $orCondition = false):Builder
+    protected function whereNotIn(Builder $query, array $filter, bool $orCondition = false): Builder
     {
         if ($orCondition) {
             return $query->orWhereNotIn($filter['field'], $filter['value']);
