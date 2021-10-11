@@ -349,6 +349,11 @@ class Filter implements Jsonable
 
         $this->validateOperator($filter['op']);
 
+        return $this->sanitizeFilter($filter);
+    }
+
+    protected function sanitizeFilter(array $filter): array
+    {
         if (is_array($filter['value']) && !in_array($filter['op'], ['in', 'not'], true)) {
             $filter['op'] = ($filter['op'] === '=') ? 'in' : 'not';
         } elseif ($filter['op'] === 'like' || $filter['op'] === 'not like') {
