@@ -209,6 +209,18 @@ class QueryFilter
         string $relationName,
         bool $orCondition = false
     ): Builder {
+        if (isset($filter['has']) && $filter['has'] === false) {
+            if ($orCondition) {
+                return $query->orWhereDoesntHave($relationName, function ($query) use ($filter) {
+                    $this->where($query, $filter);
+                });
+            }
+
+            return $query->whereDoesntHave($relationName, function ($query) use ($filter) {
+                $this->where($query, $filter);
+            });
+        }
+
         if ($orCondition) {
             return $query->orWhereHas($relationName, function ($query) use ($filter) {
                 $this->where($query, $filter);

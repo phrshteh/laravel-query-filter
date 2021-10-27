@@ -74,7 +74,7 @@ class Filter implements Jsonable
     /**
      * @throws InvalidFilterException
      */
-    public function addFilter(string $attribute, $op = null, $value = null): Filter
+    public function addFilter(string $attribute, $op = null, $value = null, bool $has = true): Filter
     {
         if (func_num_args() === 2) {
             $value = $op;
@@ -86,7 +86,8 @@ class Filter implements Jsonable
         $filter = $this->validateFilter([
             'field' => $attribute,
             'op' => $op,
-            'value' => $value
+            'value' => $value,
+            'has' => $has
         ]);
 
         $this->filterGroups[] = [$filter];
