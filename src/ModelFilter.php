@@ -25,15 +25,15 @@ abstract class ModelFilter
         $this->filter = $this->createFilterFromRequest();
     }
 
-    abstract public function getSortableAttributes(): array;
+    abstract protected function getSortableAttributes(): array;
 
-    abstract public function getSummableAttributes(): array;
+    abstract protected function getSummableAttributes(): array;
 
-    abstract public function getFilterableAttributes(): array;
+    abstract protected function getFilterableAttributes(): array;
 
-    abstract public function getFilterableRelations(): array;
+    abstract protected function getFilterableRelations(): array;
 
-    abstract public function getLoadableRelations(): array;
+    abstract protected function getLoadableRelations(): array;
 
     public function getMaxPaginationLimit(): int
     {

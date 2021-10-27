@@ -6,21 +6,21 @@ use Omalizadeh\QueryFilter\ModelFilter;
 
 class {{ class }} extends ModelFilter
 {
-    public function getSortableAttributes(): array
+    protected function getSortableAttributes(): array
     {
         return [
             //
         ];
     }
 
-    public function getSummableAttributes(): array
+    protected function getSummableAttributes(): array
     {
         return [
             //
         ];
     }
 
-    public function getFilterableAttributes(): array
+    protected function getFilterableAttributes(): array
     {
         return [
             //
@@ -35,14 +35,14 @@ class {{ class }} extends ModelFilter
      *      'filter_key_and_db_column_name',
      *  ],
      */
-    public function getFilterableRelations(): array
+    protected function getFilterableRelations(): array
     {
         return [
             //
         ];
     }
 
-    public function getLoadableRelations(): array
+    protected function getLoadableRelations(): array
     {
         return [
             //
