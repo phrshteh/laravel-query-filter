@@ -49,4 +49,51 @@ class QueryFilterTest extends TestCase
             $this->assertTrue($user->isActive());
         }
     }
+
+    /** @test */
+    public function hasRelationFilterTest(): void
+    {
+        $filters = new Filter([
+            [
+                [
+                    'field' => 'gender',
+                    'op' => '=',
+                    'value' => false
+                ]
+            ]
+        ]);
+        $request = new Request([
+            'filter' => $filters->toJson()
+        ]);
+        $filters = new UserFilter($request);
+        $filterResult = User::filter($filters);
+        $users = $filterResult->getData();
+        foreach ($users as $user) {
+            $this->assertTrue($user->isFemale());
+        }
+    }
+
+    /** @test */
+    public function doesntHaveRelationFilterTest(): void
+    {
+        $filters = new Filter([
+            [
+                [
+                    'field' => 'post_body',
+                    'op' => 'like',
+                    'value' => 'hello',
+                    'has' => false
+                ]
+            ]
+        ]);
+        $request = new Request([
+            'filter' => $filters->toJson()
+        ]);
+        $filters = new UserFilter($request);
+        $filterResult = User::filter($filters);
+        $users = $filterResult->getData();
+        foreach ($users as $user) {
+            $this->assertFalse($user->posts()->where('body', 'like', '%hello%')->exists());
+        }
+    }
 }

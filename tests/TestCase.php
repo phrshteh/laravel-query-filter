@@ -3,8 +3,10 @@
 namespace Omalizadeh\QueryFilter\Tests;
 
 use Omalizadeh\QueryFilter\QueryFilterServiceProvider;
-use Omalizadeh\QueryFilter\Tests\Database\Migrations\CreateTestUsersTable;
-use Omalizadeh\QueryFilter\Tests\Database\Seeders\TestUserSeeder;
+use Omalizadeh\QueryFilter\Tests\Database\Migrations\CreateTestingPostsTable;
+use Omalizadeh\QueryFilter\Tests\Database\Migrations\CreateTestingProfilesTable;
+use Omalizadeh\QueryFilter\Tests\Database\Migrations\CreateTestingUsersTable;
+use Omalizadeh\QueryFilter\Tests\Database\Seeders\TestingDataSeeder;
 use Orchestra\Testbench\TestCase as BaseTestCase;
 
 class TestCase extends BaseTestCase
@@ -34,16 +36,18 @@ class TestCase extends BaseTestCase
 
     protected function migrate(): void
     {
-        (new CreateTestUsersTable)->up();
+        (new CreateTestingUsersTable)->up();
+        (new CreateTestingProfilesTable)->up();
+        (new CreateTestingPostsTable)->up();
     }
 
     protected function seedTestData(): void
     {
-        (new TestUserSeeder)->run();
+        (new TestingDataSeeder)->run();
     }
 
     protected function getFilterPath(?string $filterFileName = null): string
     {
-        return app_path("Filters" . "\\{$filterFileName}");
+        return app_path("Filters"."\\{$filterFileName}");
     }
 }

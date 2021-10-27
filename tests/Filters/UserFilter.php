@@ -6,7 +6,7 @@ use Omalizadeh\QueryFilter\ModelFilter;
 
 class UserFilter extends ModelFilter
 {
-    public function getSortableAttributes(): array
+    protected function getSortableAttributes(): array
     {
         return [
             'id',
@@ -15,28 +15,34 @@ class UserFilter extends ModelFilter
         ];
     }
 
-    public function getSummableAttributes(): array
+    protected function getSummableAttributes(): array
     {
         return [];
     }
 
-    public function getFilterableAttributes(): array
+    protected function getFilterableAttributes(): array
     {
         return [
             'id',
-            'gender',
             'phone',
-            'first_name',
             'is_active'
         ];
     }
 
-    public function getFilterableRelations(): array
+    protected function getFilterableRelations(): array
     {
-        return [];
+        return [
+            'profile' => [
+                'gender',
+                'first_name'
+            ],
+            'posts' => [
+                'post_body' => 'body'
+            ]
+        ];
     }
 
-    public function getLoadableRelations(): array
+    protected function getLoadableRelations(): array
     {
         return [];
     }
