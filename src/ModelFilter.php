@@ -18,12 +18,15 @@ abstract class ModelFilter
      * @throws Exceptions\InvalidSortException
      * @throws InvalidFilterException
      * @throws Exceptions\InvalidSumException
+     * @throws Exceptions\InvalidSelectedAttributeException
      */
     public function __construct(Request $request)
     {
         $this->request = $request;
         $this->filter = $this->createFilterFromRequest();
     }
+
+    abstract protected function getSelectableAttributes(): array;
 
     abstract protected function getSortableAttributes(): array;
 
@@ -54,6 +57,11 @@ abstract class ModelFilter
     {
         $this->filter = $filter;
         return $this;
+    }
+
+    public function hasSelectableAttribute(string $attribute): bool
+    {
+        return in_array($attribute, $this->getSelectableAttributes(), true);
     }
 
     public function hasFilterableAttribute(string $attribute): bool
@@ -97,13 +105,14 @@ abstract class ModelFilter
      * @throws Exceptions\InvalidSortException
      * @throws Exceptions\InvalidRelationException
      * @throws InvalidFilterException
+     * @throws Exceptions\InvalidSelectedAttributeException
      * @throws Exceptions\InvalidSumException
      */
     private function createFilterFromRequest(): Filter
     {
         try {
             $requestData = json_decode(
-                $this->getRequest()->input('filter', '{}'),
+                $this->getRequest()->input('q', '{}'),
                 true,
                 512,
                 JSON_THROW_ON_ERROR
@@ -114,9 +123,14 @@ abstract class ModelFilter
 
         $filter = new Filter();
 
-        $sortData = Arr::get($requestData, 'sorts');
-        if (!empty($sortData)) {
-            $filter->setSorts($sortData);
+        $selectedFields = Arr::get($requestData, 'fields');
+        if (!empty($selectedFields)) {
+            $filter->setSelectedAttributes($selectedFields);
+        }
+
+        $sorts = Arr::get($requestData, 'sorts');
+        if (!empty($sorts)) {
+            $filter->setSorts($sorts);
         }
 
         $limit = Arr::get($requestData, 'page.limit');
@@ -134,7 +148,7 @@ abstract class ModelFilter
             $filter->setFilterGroups($filterGroups);
         }
 
-        $relations = Arr::get($requestData, 'relations');
+        $relations = Arr::get($requestData, 'with');
         if (!empty($relations)) {
             $filter->setRelations($relations);
         }

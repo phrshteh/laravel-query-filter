@@ -6,6 +6,13 @@ use Omalizadeh\QueryFilter\ModelFilter;
 
 class {{ class }} extends ModelFilter
 {
+    protected function getSelectableAttributes(): array
+    {
+        return [
+            //
+        ];
+    }
+
     protected function getSortableAttributes(): array
     {
         return [

@@ -7,11 +7,13 @@ use Illuminate\Support\Arr;
 use JsonException;
 use Omalizadeh\QueryFilter\Exceptions\InvalidFilterException;
 use Omalizadeh\QueryFilter\Exceptions\InvalidRelationException;
+use Omalizadeh\QueryFilter\Exceptions\InvalidSelectedAttributeException;
 use Omalizadeh\QueryFilter\Exceptions\InvalidSortException;
 use Omalizadeh\QueryFilter\Exceptions\InvalidSumException;
 
 class Filter implements Jsonable
 {
+    protected array $selectedAttributes = [];
     protected array $filterGroups = [];
     protected array $sorts = [];
     protected array $sums = [];
@@ -23,9 +25,11 @@ class Filter implements Jsonable
      * @throws InvalidSortException
      * @throws InvalidRelationException
      * @throws InvalidSumException
+     * @throws InvalidSelectedAttributeException
      * @throws InvalidFilterException
      */
     public function __construct(
+        array $selectedAttributes = [],
         array $filterGroups = [],
         array $sorts = [],
         array $sums = [],
@@ -33,12 +37,36 @@ class Filter implements Jsonable
         ?int $offset = null,
         ?int $limit = null
     ) {
+        $this->setSelectedAttributes($selectedAttributes);
         $this->setFilterGroups($filterGroups);
         $this->setSorts($sorts);
         $this->setSums($sums);
         $this->setRelations($relations);
         $this->setOffset($offset);
         $this->setLimit($limit);
+    }
+
+    /**
+     * @throws InvalidSelectedAttributeException
+     */
+    public function setSelectedAttributes(array $attributes): Filter
+    {
+        foreach ($attributes as $attribute) {
+            if (!is_string($attribute)) {
+                throw new InvalidSelectedAttributeException('Selected attribute names must be string.');
+            }
+
+            $this->selectAttribute($attribute);
+        }
+
+        return $this;
+    }
+
+    public function selectAttribute(string $attribute): Filter
+    {
+        $this->selectedAttributes[] = $attribute;
+
+        return $this;
     }
 
     /**
@@ -196,6 +224,11 @@ class Filter implements Jsonable
         return array_unique(Arr::flatten($filteredAttributes));
     }
 
+    public function getSelectedAttributes(): array
+    {
+        return $this->selectedAttributes;
+    }
+
     /**
      * @return array
      */
@@ -240,10 +273,15 @@ class Filter implements Jsonable
         return $this->sorts;
     }
 
+    public function hasSelectedAttribute(): bool
+    {
+        return !empty($this->getSelectedAttributes());
+    }
+
     /**
      * @return bool
      */
-    public function hasAnyFilterGroup(): bool
+    public function hasFilterGroup(): bool
     {
         return !empty($this->getFilterGroups());
     }
@@ -296,7 +334,6 @@ class Filter implements Jsonable
         return !is_null($this->getOffset());
     }
 
-
     /**
      * Convert filter to JSON string.
      *
@@ -308,6 +345,10 @@ class Filter implements Jsonable
     {
         $data = [];
 
+        if (!empty($this->getSelectedAttributes())) {
+            $data['fields'] = $this->getSelectedAttributes();
+        }
+
         if (!empty($this->getFilterGroups())) {
             $data['filters'] = $this->getFilterGroups();
         }
@@ -317,7 +358,7 @@ class Filter implements Jsonable
         }
 
         if (!empty($this->getRelations())) {
-            $data['relations'] = $this->getRelations();
+            $data['with'] = $this->getRelations();
         }
 
         if (!empty($this->getSums())) {

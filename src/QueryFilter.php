@@ -20,7 +20,11 @@ class QueryFilter
      */
     public function applyFilter(): QueryFilterResult
     {
-        if ($this->getFilter()->hasAnyFilterGroup()) {
+        if ($this->getFilter()->hasSelectedAttribute()) {
+            $this->select();
+        }
+
+        if ($this->getFilter()->hasFilterGroup()) {
             $this->applyFilterGroups();
         }
 
@@ -41,22 +45,19 @@ class QueryFilter
         return new QueryFilterResult($this->getBuilder(), $this->getBuilder()->count(), $sums ?? []);
     }
 
-    protected function applyPagination(): Builder
+    protected function select(): void
     {
-        if (!$this->getFilter()->hasLimit() || $this->getFilter()->getLimit() > $this->getModelFilter()->getMaxPaginationLimit()) {
-            $this->getFilter()->setLimit($this->getModelFilter()->getMaxPaginationLimit());
+        $validAttributes = [];
+
+        foreach ($this->getFilter()->getSelectedAttributes() as $attribute) {
+            if ($this->getModelFilter()->hasSelectableAttribute($attribute)) {
+                $validAttributes[] = $attribute;
+            }
         }
 
-        if (!$this->getFilter()->hasOffset()) {
-            $this->getFilter()->setOffset(0);
+        if (!empty($validAttributes)) {
+            $this->getBuilder()->select($validAttributes);
         }
-
-        return $this->paginate();
-    }
-
-    protected function paginate(): Builder
-    {
-        return $this->getBuilder()->limit($this->getFilter()->getLimit())->offset($this->getFilter()->getOffset());
     }
 
     protected function applyFilterGroups(): void
@@ -230,6 +231,24 @@ class QueryFilter
         return $query->whereHas($relationName, function ($query) use ($filter) {
             $this->where($query, $filter);
         });
+    }
+
+    protected function applyPagination(): Builder
+    {
+        if (!$this->getFilter()->hasLimit() || $this->getFilter()->getLimit() > $this->getModelFilter()->getMaxPaginationLimit()) {
+            $this->getFilter()->setLimit($this->getModelFilter()->getMaxPaginationLimit());
+        }
+
+        if (!$this->getFilter()->hasOffset()) {
+            $this->getFilter()->setOffset(0);
+        }
+
+        return $this->paginate();
+    }
+
+    protected function paginate(): Builder
+    {
+        return $this->getBuilder()->limit($this->getFilter()->getLimit())->offset($this->getFilter()->getOffset());
     }
 
     protected function load(): void
