@@ -6,6 +6,14 @@ use Omalizadeh\QueryFilter\ModelFilter;
 
 class UserFilter extends ModelFilter
 {
+    protected function getSelectableAttributes(): array
+    {
+        return [
+            'id',
+            'phone'
+        ];
+    }
+
     protected function getSortableAttributes(): array
     {
         return [

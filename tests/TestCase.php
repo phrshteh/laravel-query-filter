@@ -11,6 +11,13 @@ use Orchestra\Testbench\TestCase as BaseTestCase;
 
 class TestCase extends BaseTestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->migrateAndSeed();
+    }
+
     protected function getPackageProviders($app): array
     {
         return [
