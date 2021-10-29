@@ -10,7 +10,6 @@ use Omalizadeh\QueryFilter\Exceptions\InvalidFilterException;
 abstract class ModelFilter
 {
     protected int $maxPaginationLimit = 1000;
-    protected Request $request;
     protected Filter $filter;
 
     /**
@@ -20,10 +19,13 @@ abstract class ModelFilter
      * @throws Exceptions\InvalidSumException
      * @throws Exceptions\InvalidSelectedAttributeException
      */
-    public function __construct(Request $request)
+    public function __construct(?Filter $filter = null)
     {
-        $this->request = $request;
-        $this->filter = $this->createFilterFromRequest();
+        if (is_null($filter)) {
+            $this->filter = $this->createFilterFromRequest(request());
+        } else {
+            $this->setFilter($filter);
+        }
     }
 
     abstract protected function getSelectableAttributes(): array;
@@ -41,11 +43,6 @@ abstract class ModelFilter
     public function getMaxPaginationLimit(): int
     {
         return $this->maxPaginationLimit;
-    }
-
-    public function getRequest(): Request
-    {
-        return $this->request;
     }
 
     public function getFilter(): Filter
@@ -108,11 +105,11 @@ abstract class ModelFilter
      * @throws Exceptions\InvalidSelectedAttributeException
      * @throws Exceptions\InvalidSumException
      */
-    private function createFilterFromRequest(): Filter
+    private function createFilterFromRequest(Request $request): Filter
     {
         try {
             $requestData = json_decode(
-                $this->getRequest()->input('q', '{}'),
+                $request->input('q', '{}'),
                 true,
                 512,
                 JSON_THROW_ON_ERROR
