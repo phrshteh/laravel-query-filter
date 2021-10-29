@@ -107,6 +107,8 @@ class Filter implements Jsonable
         if (func_num_args() === 2) {
             $value = $op;
             $op = '=';
+        } elseif (is_null($op) && func_num_args() === 1) {
+            $op = '=';
         } else {
             $this->validateOperator($op);
         }
