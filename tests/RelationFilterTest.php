@@ -3,7 +3,6 @@
 namespace Omalizadeh\QueryFilter\Tests;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\Request;
 use Omalizadeh\QueryFilter\Filter;
 use Omalizadeh\QueryFilter\Tests\Filters\UserFilter;
 use Omalizadeh\QueryFilter\Tests\Models\User;
@@ -25,12 +24,13 @@ class RelationFilterTest extends TestCase
                 ]
             ]
         ]);
-        $request = new Request([
-            'q' => $filter->toJson()
-        ]);
-        $modelFilter = new UserFilter($request);
+
+        $modelFilter = new UserFilter($filter);
+
         $filterResult = User::filter($modelFilter);
+
         $users = $filterResult->getData();
+
         foreach ($users as $user) {
             $this->assertTrue($user->isFemale());
         }
@@ -50,12 +50,13 @@ class RelationFilterTest extends TestCase
                 ]
             ]
         ]);
-        $request = new Request([
-            'q' => $filter->toJson()
-        ]);
-        $modelFilter = new UserFilter($request);
+
+        $modelFilter = new UserFilter($filter);
+
         $filterResult = User::filter($modelFilter);
+
         $users = $filterResult->getData();
+
         foreach ($users as $user) {
             $this->assertFalse($user->posts()->where('body', 'like', '%hello%')->exists());
         }

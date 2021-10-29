@@ -3,7 +3,6 @@
 namespace Omalizadeh\QueryFilter\Tests;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Omalizadeh\QueryFilter\Filter;
 use Omalizadeh\QueryFilter\Tests\Filters\UserFilter;
@@ -16,8 +15,10 @@ class QueryFilterTest extends TestCase
     /** @test */
     public function getDataWithoutFilterTest(): void
     {
-        $filterResult = User::filter((new UserFilter(new Request())));
+        $filterResult = User::filter((new UserFilter()));
+
         $users = $filterResult->getData();
+
         $this->assertCount($filterResult->getCount(), $users);
     }
 
@@ -34,12 +35,13 @@ class QueryFilterTest extends TestCase
                 ]
             ]
         ]);
-        $request = new Request([
-            'q' => $filter->toJson()
-        ]);
-        $modelFilter = new UserFilter($request);
+
+        $modelFilter = new UserFilter($filter);
+
         $filterResult = User::filter($modelFilter);
+
         $users = $filterResult->getData();
+
         foreach ($users as $user) {
             $this->assertTrue($user->isActive());
         }
@@ -50,12 +52,13 @@ class QueryFilterTest extends TestCase
     {
         $filter = new Filter();
         $filter->setSelectedAttributes(['phone']);
-        $request = new Request([
-            'q' => $filter->toJson()
-        ]);
-        $modelFilter = new UserFilter($request);
+
+        $modelFilter = new UserFilter($filter);
+
         $filterResult = User::filter($modelFilter);
+
         $users = $filterResult->getData()->toArray();
+
         foreach ($users as $user) {
             $this->assertEmpty(Arr::except($user, ['phone']));
         }

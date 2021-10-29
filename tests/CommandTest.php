@@ -11,9 +11,11 @@ class CommandTest extends TestCase
     public function makeFilterCommandCreatesFilterClassTest(): void
     {
         $filterFileName = 'TestFilter.php';
+
         if (File::exists($this->getFilterPath($filterFileName))) {
             unlink($this->getFilterPath($filterFileName));
         }
+
         $this->assertFalse(File::exists($this->getFilterPath($filterFileName)));
         Artisan::call('make:filter TestFilter');
         $this->assertTrue(File::exists($this->getFilterPath($filterFileName)));

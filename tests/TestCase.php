@@ -2,7 +2,7 @@
 
 namespace Omalizadeh\QueryFilter\Tests;
 
-use Omalizadeh\QueryFilter\QueryFilterServiceProvider;
+use Omalizadeh\QueryFilter\Providers\QueryFilterServiceProvider;
 use Omalizadeh\QueryFilter\Tests\Database\Migrations\CreateTestingPostsTable;
 use Omalizadeh\QueryFilter\Tests\Database\Migrations\CreateTestingProfilesTable;
 use Omalizadeh\QueryFilter\Tests\Database\Migrations\CreateTestingUsersTable;
