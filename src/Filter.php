@@ -360,7 +360,7 @@ class Filter implements Jsonable
         }
 
         if (!empty($this->getRelations())) {
-            $data['with'] = $this->getRelations();
+            $data['withs'] = $this->getRelations();
         }
 
         if (!empty($this->getSums())) {

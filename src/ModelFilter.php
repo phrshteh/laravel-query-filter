@@ -145,7 +145,7 @@ abstract class ModelFilter
             $filter->setFilterGroups($filterGroups);
         }
 
-        $relations = Arr::get($requestData, 'with');
+        $relations = Arr::get($requestData, 'withs');
         if (!empty($relations)) {
             $filter->setRelations($relations);
         }
