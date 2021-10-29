@@ -1,6 +1,6 @@
 <?php
 
-namespace Omalizadeh\QueryFilter;
+namespace Omalizadeh\QueryFilter\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Omalizadeh\QueryFilter\Console\MakeFilterCommand;
