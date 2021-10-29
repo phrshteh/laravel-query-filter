@@ -1,94 +1,129 @@
 [![Latest Stable Version](https://poser.pugx.org/omalizadeh/laravel-query-filter/v)](https://packagist.org/packages/omalizadeh/laravel-query-filter)
 [![License](https://poser.pugx.org/omalizadeh/laravel-query-filter/license)](https://packagist.org/packages/omalizadeh/laravel-query-filter)
 [![Total Downloads](https://poser.pugx.org/omalizadeh/laravel-query-filter/downloads)](https://packagist.org/packages/omalizadeh/laravel-query-filter)
+
 # Laravel Query Filter
-Laravel query filter provides an elegant way to filter resources via request query string.
-You can specify conditions in query string to filter eloquent models and resources.
+
+Laravel query filter provides an elegant way to filter resources via request query string. You can specify conditions in
+query string to filter eloquent models and resources.
 
 ## Installation & Usage
+
 Install via composer:
+
 ```
 composer require omalizadeh/laravel-query-filter
 ```
+
 Make a filter class:
+
 ```
 php artisan make:filter FilterClassName
 ```
+
 Add trait in model:
+
 ```php
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Omalizadeh\QueryFilter\Traits\HasFilter;
 
-class Admin extends Model
+class User extends Model
 {
     use HasFilter;
 
-    public function profile()
+    public function profile(): HasOne
     {
         return $this->hasOne(Profile::class);
     }
 
-    public function posts()
+    public function posts(): HasMany
     {
         return $this->hasMany(Post::class);
     }
 }
 ```
-Set filterable attributes, relations and other options:
+
+Set filterable attributes, relations and other options in filter class:
+
 ```php
 <?php
 
-namespace App\Http\Filters;
+namespace App\Filters;
 
-use Illuminate\Http\Request;
-use Omalizadeh\QueryFilter\Filter;
+use Omalizadeh\QueryFilter\ModelFilter;
 
-class AdminFilter extends Filter
+class UserFilter extends ModelFilter
 {
-    public function __construct(Request $request)
+    protected function getSelectableAttributes(): array
     {
-        parent::__construct($request);
-        $this->sortableAttributes = [
+        return [
             'id',
-            'created_at'
+            'phone'
+        ];
+    }
+
+    protected function getSortableAttributes(): array
+    {
+        return [
+            'id',
+            'created_at',
             'updated_at'
         ];
-        $this->filterableAttributes = [
-            'username',
+    }
+
+    protected function getSummableAttributes(): array
+    {
+        return [
+            'views'
+        ];
+    }
+
+    protected function getFilterableAttributes(): array
+    {
+        return [
+            'id',
+            'phone',
             'is_active'
         ];
-        $this->filterableRelations = [
-            /*  'relation' => [
-            *      'attribute1',
-            *      'attribute2' 
-            *   ]
-            */             
+    }
+
+    protected function getFilterableRelations(): array
+    {
+        return [
             'profile' => [
                 'gender',
-                'first_name',
-                'last_name',
-                'phone',
-                'email',
-                'birth_date'
+                'first_name'
+            ],
+            'posts' => [
+                'post_body' => 'body'
             ]
         ];
-        $this->loadableRelations = [
+    }
+
+    protected function getLoadableRelations(): array
+    {
+        return [
             'profile'
-        ];
-        $this->summableAttributes = [
-            // total sold is a column in admins table
-            'total_sold'
         ];
     }
 }
 ```
-Filtering resources from query string using json formatted filter parameter with pagination & sort:
-```json
-api/admins?filter={
+
+Filtering resources via json formatted filter parameter with pagination & sort sent as `q` in query string:
+
+```
+api/users?q={
     "page": {
         "limit": 20,
         "offset": 0
     },
-    "sort": [
+    "sorts": [
         {
             "field": "id",
             "dir": "desc"
@@ -99,73 +134,100 @@ api/admins?filter={
             {
                 "field": "is_active",
                 "op": "=",
-                "value": "="
+                "value": true
             }
         ]
     ],
-    "with": ["profile"]
+    "sums": ["views"],
+    "withs": ["profile"]
 }
 ```
-In Controller:
-```php
-use App\Http\Filters\AdminFilter;
 
-public function index(AdminFilter $filters)
+In Controller:
+
+```php
+
+public function index(UserFilter $userFilter)
 {
+    $userFilterResult = User::filter($userFilter);
+    
     // count: total resources based on filters
+    $count = $userFilterResult->getCount();
+    
     // sum: sum of given attributes in filter if there is any
-    list($admins, $count, $sum) = Admin::filter($filters);
-    $admins = $admins->with('posts')->get();
+    $sums = $userFilterResult->getSums();
+    
+    // Get query result as collection
+    $users = $userFilterResult->getData();
+    
     // do stuff and return response
 }
 ```
+
 ### Available Operators
+
 | Operators | Value          | Description                                            |
 | --------- | -------------- | ------------------------------------------------------ |
-| =         | string/numeric | Field is equal to value                                |
+| =         | string/numeric/bool | Field is equal to value                                |
+| !=        | string/numeric/bool | Field is not equal to value                            |
+| <>        | string/numeric/bool | Field is not equal to value                            |
 | >         | string/numeric | Field is greater than value                            |
 | >=        | string/numeric | Field is greater than or equal to value                |
 | <         | string/numeric | Field is lower than value                              |
 | <=        | string/numeric | Field is lower than or equal to value                  |
-| !=        | string/numeric | Field is not equal to value                            |
-| <>        | string/numeric | Field is not equal to value                            |
 | like      | string         | Field is like string value                             |
 | not like  | string         | Field is not like string                               |
 | in        | array          | Field value is in given array                          |
-| not       | NULL/array     | Field is not null (for null value)/ Not in given array |
-| is        | NULL           | Field is null                                          |
+| not       | null/array     | Field is not null (for null value)/ Not in given array |
+| is        | null           | Field is null                                          |
+
 ### Query String Format
+
 Example conditions:
+
 ```
-(`is_active` = 1 OR `username` like "%omalizadeh%") AND (`first_name` like "%omid%")
+(`is_active` = 1 OR `phone` like "%912%") AND (`first_name` like "%omid%")
 ```
+
 Then json filter will be:
 
 ```json
 {
-    "page":{"limit":20,"offset":0},
-    "sort":[
-        {"field":"id","dir":"desc"}
+    "page": {
+        "limit": 20,
+        "offset": 0
+    },
+    "sorts": [
+        {
+            "field": "id",
+            "dir": "desc"
+        }
     ],
-    "filters":[
+    "filters": [
         [
-            {"field":"is_active","op":"=","value":1},
-            {"field":"username","op":"like","value":"omalizadeh"},
+            {
+                "field": "is_active",
+                "op": "=",
+                "value": 1
+            },
+            {
+                "field": "phone",
+                "op": "like",
+                "value": "912"
+            }
         ],
-        [   
-            {"field":"first_name","op":"like","value":"omid"},
+        [
+            {
+                "field": "first_name",
+                "op": "like",
+                "value": "omid",
+                "has": true
+            }
         ]
-    ],
-    "sum": [
-        "total_sold"
     ]
 }
 ```
+
 ## License
 
 Laravel Query Filter is open-sourced software licensed under the [MIT license](LICENSE.md).
-
-## Acknowledgments
-
-This package is based on [Behamin BFilter Package](https://github.com/alirezabahram7/bfilter).
-Thanks To [Alireza Bahrami](https://github.com/alirezabahram7) and [Hossein Ebrahimzadeh](https://github.com/Hebrahimzadeh)
