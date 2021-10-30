@@ -2,21 +2,30 @@
 
 namespace Omalizadeh\QueryFilter\Tests;
 
-use Omalizadeh\QueryFilter\QueryFilterServiceProvider;
-use Omalizadeh\QueryFilter\Tests\Database\Migrations\CreateTestUsersTable;
-use Omalizadeh\QueryFilter\Tests\Database\Seeders\TestUserSeeder;
+use Omalizadeh\QueryFilter\Providers\QueryFilterServiceProvider;
+use Omalizadeh\QueryFilter\Tests\Database\Migrations\CreateTestingPostsTable;
+use Omalizadeh\QueryFilter\Tests\Database\Migrations\CreateTestingProfilesTable;
+use Omalizadeh\QueryFilter\Tests\Database\Migrations\CreateTestingUsersTable;
+use Omalizadeh\QueryFilter\Tests\Database\Seeders\TestingDataSeeder;
 use Orchestra\Testbench\TestCase as BaseTestCase;
 
 class TestCase extends BaseTestCase
 {
-    protected function getPackageProviders($app)
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->migrateAndSeed();
+    }
+
+    protected function getPackageProviders($app): array
     {
         return [
             QueryFilterServiceProvider::class
         ];
     }
 
-    protected function getEnvironmentSetUp($app)
+    protected function getEnvironmentSetUp($app): void
     {
         $app['config']->set('database.default', 'test_db');
         $app['config']->set('database.connections.test_db', [
@@ -26,19 +35,26 @@ class TestCase extends BaseTestCase
         ]);
     }
 
-    protected function migrateAndSeed()
+    protected function migrateAndSeed(): void
     {
         $this->migrate();
-        return $this->seedTestData();
+        $this->seedTestData();
     }
 
-    protected function migrate()
+    protected function migrate(): void
     {
-        return (new CreateTestUsersTable)->up();
+        (new CreateTestingUsersTable)->up();
+        (new CreateTestingProfilesTable)->up();
+        (new CreateTestingPostsTable)->up();
     }
 
-    protected function seedTestData()
+    protected function seedTestData(): void
     {
-        return (new TestUserSeeder)->run();
+        (new TestingDataSeeder)->run();
+    }
+
+    protected function getFilterPath(?string $filterFileName = null): string
+    {
+        return app_path("Filters"."/$filterFileName");
     }
 }

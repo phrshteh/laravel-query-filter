@@ -2,533 +2,279 @@
 
 namespace Omalizadeh\QueryFilter;
 
-use JsonException;
-use RuntimeException;
+use Illuminate\Contracts\Support\Jsonable;
 use Illuminate\Support\Arr;
-use Illuminate\Http\Request;
-use Illuminate\Database\Eloquent\Builder;
+use JsonException;
 use Omalizadeh\QueryFilter\Exceptions\InvalidFilterException;
+use Omalizadeh\QueryFilter\Exceptions\InvalidRelationException;
+use Omalizadeh\QueryFilter\Exceptions\InvalidSelectedAttributeException;
+use Omalizadeh\QueryFilter\Exceptions\InvalidSortException;
+use Omalizadeh\QueryFilter\Exceptions\InvalidSumException;
 
-class Filter extends QueryFilter
+class Filter implements Jsonable
 {
-    protected $builder;
-    protected $request;
-    protected $filterableAttributes = [];
-    protected $sortableAttributes = [];
-    protected $filterableRelations = [];
-    protected $loadableRelations = [];
-    protected $summableAttributes = [];
-    protected $maxPaginationLimit = 1000;
-    protected $hasFiltersWithoutPagination = true;
+    protected array $selectedAttributes = [];
+    protected array $filterGroups = [];
+    protected array $sorts = [];
+    protected array $sums = [];
+    protected array $relations = [];
+    protected ?int $offset = null;
+    protected ?int $limit = null;
 
-    /**
-     * Filter constructor.
-     *
-     * @param  Request  $request
-     *
-     * @throws \JsonException
-     */
-    public function __construct(Request $request)
-    {
-        $this->request = $request;
-        $this->setParameters();
+    public function __construct(
+        array $selectedAttributes = [],
+        array $filterGroups = [],
+        array $sorts = [],
+        array $sums = [],
+        array $relations = [],
+        ?int $offset = null,
+        ?int $limit = null
+    ) {
+        $this->setSelectedAttributes($selectedAttributes);
+        $this->setFilterGroups($filterGroups);
+        $this->setSorts($sorts);
+        $this->setSums($sums);
+        $this->setRelations($relations);
+        $this->setOffset($offset);
+        $this->setLimit($limit);
     }
 
-    public function getRequest(): Request
+    public function setSelectedAttributes(array $attributes): Filter
     {
-        return $this->request;
+        foreach ($attributes as $attribute) {
+            if (!is_string($attribute)) {
+                throw new InvalidSelectedAttributeException('Selected attribute names must be string.');
+            }
+
+            $this->selectAttribute($attribute);
+        }
+
+        return $this;
+    }
+
+    public function selectAttribute(string $attribute): Filter
+    {
+        $this->selectedAttributes[] = $attribute;
+
+        return $this;
+    }
+
+    public function setFilterGroups(array $filterGroups): Filter
+    {
+        foreach ($filterGroups as $filterGroup) {
+            foreach ($filterGroup as &$filter) {
+                $filter = $this->validateFilter($filter);
+            }
+
+            $this->filterGroups[] = $filterGroup;
+        }
+
+        return $this;
+    }
+
+    public function addFilterGroup(array $filterGroup): Filter
+    {
+        foreach ($filterGroup as &$filter) {
+            $filter = $this->validateFilter($filter);
+        }
+
+        $this->filterGroups[] = $filterGroup;
+
+        return $this;
+    }
+
+    public function addFilter(string $attribute, $op = null, $value = null, bool $has = true): Filter
+    {
+        if (func_num_args() === 2) {
+            $value = $op;
+            $op = '=';
+        } elseif (is_null($op) && func_num_args() === 1) {
+            $op = '=';
+        } else {
+            $this->validateOperator($op);
+        }
+
+        $filter = $this->validateFilter([
+            'field' => $attribute,
+            'op' => $op,
+            'value' => $value,
+            'has' => $has
+        ]);
+
+        $this->filterGroups[] = [$filter];
+
+        return $this;
+    }
+
+    public function setSorts(array $sorts): Filter
+    {
+        foreach ($sorts as $sort) {
+            if (!is_array($sort)) {
+                throw new InvalidSortException('Sort must be an array containing field and dir.');
+            }
+
+            if (!isset($sort['field'], $sort['dir'])) {
+                throw new InvalidSortException('Field or dir key not found in sort array.');
+            }
+
+            $this->addSort($sort['field'], $sort['dir']);
+        }
+
+        return $this;
+    }
+
+    public function setPage(int $offset, int $limit): Filter
+    {
+        $this->setOffset($offset);
+        $this->setLimit($limit);
+
+        return $this;
+    }
+
+    public function setSums(array $sums): Filter
+    {
+        foreach ($sums as $sum) {
+            if (!is_string($sum) || empty($sum)) {
+                throw new InvalidSumException('Sums array must contain only non-empty strings of field names.');
+            }
+
+            $this->addSum($sum);
+        }
+
+        return $this;
+    }
+
+    public function setRelations(array $relations): Filter
+    {
+        foreach ($relations as $relation) {
+            if (!is_string($relation) || empty($relation)) {
+                throw new InvalidRelationException('Relations array must contain only non-empty strings.');
+            }
+
+            $this->addRelation($relation);
+        }
+
+        return $this;
+    }
+
+    public function addSort(string $attribute, string $dir = 'asc'): Filter
+    {
+        $this->sorts[] = [
+            'field' => $attribute,
+            'dir' => strtolower($dir) === 'desc' ? 'desc' : 'asc'
+        ];
+
+        return $this;
+    }
+
+    public function addSum(string $attribute): Filter
+    {
+        $this->sums[] = $attribute;
+
+        return $this;
+    }
+
+    public function addRelation(string $relation): Filter
+    {
+        $this->relations[] = $relation;
+
+        return $this;
+    }
+
+    public function setLimit(?int $limit): Filter
+    {
+        $this->limit = $limit;
+
+        return $this;
+    }
+
+    public function setOffset(?int $offset): Filter
+    {
+        $this->offset = $offset;
+
+        return $this;
+    }
+
+    public function getFilteredAttributes(): array
+    {
+        $filterGroups = $this->getFilterGroups();
+        $filteredAttributes = [];
+
+        foreach ($filterGroups as $filter) {
+            $filteredAttributes[] = collect($filter)->pluck('field')->toArray();
+        }
+
+        return array_unique(Arr::flatten($filteredAttributes));
+    }
+
+    public function getSelectedAttributes(): array
+    {
+        return $this->selectedAttributes;
     }
 
     /**
-     * @throws \JsonException
-     */
-    protected function setParameters(): void
-    {
-        try {
-            $requestData = json_decode(
-                $this->getRequest()->input('filter', '{}'),
-                true,
-                512,
-                JSON_THROW_ON_ERROR
-            );
-        } catch (JsonException $ex) {
-            throw new InvalidFilterException('Cannot parse json filter. check json structure.');
-        }
-        $sortData = Arr::get($requestData, 'sort', []);
-        if (!empty($sortData)) {
-            $this->setSortData($sortData);
-        }
-        $page = Arr::get($requestData, 'page', []);
-        if (!empty($page)) {
-            $this->setPage($page);
-        }
-        $filters = Arr::get($requestData, 'filters', []);
-        if (!empty($filters)) {
-            $this->setFilters($filters);
-        }
-        $withs = Arr::get($requestData, 'with', []);
-        if (!empty($withs)) {
-            $this->setLoadRelations($withs);
-        }
-        $sums = Arr::get($requestData, 'sum', []);
-        if (!empty($sums)) {
-            $this->setSumFields($sums);
-        }
-    }
-
-    /**
-     * @param $builder
-     *
      * @return array
      */
-    public function apply($builder): array
+    public function getFilterGroups(): array
     {
-        if ($this->hasFilter()) {
-            $builder = $this->applyFilters($builder);
-        }
-        if ($this->hasWith()) {
-            $builder = $this->load($builder);
-        }
-        if ($this->hasSum()) {
-            $sum = $this->sum($builder);
-        }
-        if ($this->hasSort()) {
-            $builder = $this->sort($builder);
-        }
-        $count = $builder->count();
-        $builder = $this->applyPagination($builder);
-        $this->builder = $builder;
-
-        return array($builder, $count, $sum ?? []);
-    }
-
-    public function toSql()
-    {
-        if (!$this->builder instanceof  Builder) {
-            throw new RuntimeException("Builder is not created.");
-        }
-        $bindings = $this->builder->getBindings();
-        $sql = str_replace('?', '%s', $this->builder->toSql());
-        return vsprintf($sql, $bindings);
-    }
-
-    public function getFilterFields(): array
-    {
-        $filters = $this->getFilters();
-        $fields = [];
-        foreach ($filters as $filter) {
-            $fields[] = collect($filter)->pluck('field')->toArray();
-        }
-        $fields = array_unique(Arr::flatten($fields));
-        return array_intersect($this->filterableAttributes, $fields);
-    }
-
-    protected function applyPagination(Builder $entries): Builder
-    {
-        if ($this->hasPage()) {
-            if ($this->getLimit() > $this->getMaxPaginationLimit()) {
-                $this->setLimit($this->getMaxPaginationLimit());
-            }
-
-            return $this->paginate($entries);
-        } elseif (!$this->canFilterWithoutPagination()) {
-            $this->setLimit($this->getMaxPaginationLimit());
-            $this->setOffset(0);
-
-            return $this->paginate($entries);
-        }
-
-        return $entries;
-    }
-
-    protected function paginate(Builder $entries): Builder
-    {
-        $entries = $entries->limit($this->getLimit());
-        $entries = $entries->offset($this->getOffset());
-
-        return $entries;
+        return $this->filterGroups;
     }
 
     /**
-     * @param  Builder  $entries
-     *
-     * @return Builder
+     * @return array
      */
-    protected function applyFilters(Builder $entries): Builder
+    public function getSums(): array
     {
-        foreach ($this->getFilters() as $filters) {
-            $entries = $this->applyFilter($filters, $entries);
-        }
-        return $entries;
+        return $this->sums;
     }
 
-    /**
-     * @param $filters
-     * @param $entries
-     *
-     * @return Builder
-     */
-    protected function applyFilter($filters, $entries): Builder
+    public function getPage(): array
     {
-        return $entries->where(function ($query) use ($filters) {
-            foreach ($filters as $filterKey => $item) {
-                $item = $this->sanitizeFilter($item);
-                if (!$this->filterRelations($query, $item, $filterKey === 0)) {
-                    if ($this->hasFilterableAttribute($item->field)) {
-                        if ($filterKey === 0) {
-                            $this->where($query, $item);
-                        } else {
-                            $this->orWhere($query, $item);
-                        }
-                    } else {
-                        continue;
-                    }
-                }
-            }
-        });
+        return [
+            'limit' => $this->getLimit(),
+            'offset' => $this->getOffset()
+        ];
     }
 
-    /**
-     * @param $query
-     * @param $item
-     *
-     * @return Builder
-     */
-    protected function where($query, $item): Builder
+    public function getLimit(): ?int
     {
-        if ($this->isWhereNull($item)) {
-            return $this->whereNull($query, $item->field);
-        }
-        if ($this->isWhereNotNull($item)) {
-            return $this->whereNotNull($query, $item->field);
-        }
-        if ($this->isWhereIn($item)) {
-            return $this->whereIn($query, $item);
-        }
-        if ($this->isWhereNotIn($item)) {
-            return $this->whereNotIn($query, $item);
-        }
-        return $query->where($item->field, $item->op, $item->value);
+        return $this->limit;
     }
 
-    /**
-     * @param $query
-     * @param $item
-     *
-     * @return mixed
-     */
-    protected function orWhere($query, $item)
+    public function getOffset(): ?int
     {
-        if ($this->isWhereNull($item)) {
-            return $this->whereNull($query, $item->field, true);
-        }
-        if ($this->isWhereNotNull($item)) {
-            return $this->whereNotNull($query, $item->field, true);
-        }
-        if ($this->isWhereIn($item)) {
-            return $this->whereIn($query, $item, true);
-        }
-        if ($this->isWhereNotIn($item)) {
-            return $this->whereNotIn($query, $item, true);
-        }
-        return $query->orWhere($item->field, $item->op, $item->value);
+        return $this->offset;
     }
 
-    /**
-     * @param $query
-     * @param $item
-     *
-     * @return mixed
-     */
-    protected function whereIn($query, $item, bool $orCondition = false)
+    public function getRelations(): array
     {
-        if ($orCondition) {
-            return $query->orWhereIn($item->field, $item->value);
-        }
-        return $query->whereIn($item->field, $item->value);
+        return $this->relations;
     }
 
-    /**
-     * @param $query
-     * @param $item
-     *
-     * @return mixed
-     */
-    protected function whereNotIn($query, $item, bool $orCondition = false)
+    public function getSorts(): array
     {
-        if ($orCondition) {
-            return $query->orWhereNotIn($item->field, $item->value);
-        }
-        return $query->whereNotIn($item->field, $item->value);
+        return $this->sorts;
     }
 
-    /**
-     * @param $query
-     * @param $columns
-     * @param  bool  $orCondition
-     *
-     * @return mixed
-     */
-    protected function whereNull($query, $columns, bool $orCondition = false)
+    public function hasSelectedAttribute(): bool
     {
-        if ($orCondition) {
-            return $query->orWhereNull($columns);
-        }
-        return $query->whereNull($columns);
-    }
-
-    /**
-     * @param $query
-     * @param $columns
-     * @param  bool  $orCondition
-     * @param  false  $not
-     *
-     * @return mixed
-     */
-    protected function whereNotNull($query, $columns, bool $orCondition = false)
-    {
-        if ($orCondition) {
-            return $query->orWhereNotNull($columns);
-        }
-        return $query->whereNotNull($columns);
-    }
-
-    /**
-     * relations = [
-     *  'relation_name' => [
-     *      'destination_key' => 'origin_key'
-     *   ]
-     * ]
-     *
-     * @param $query
-     * @param $item
-     * @param  bool  $isWhere
-     *
-     * @return mixed
-     */
-    protected function filterRelations(&$query, $item, bool $firstKey = true)
-    {
-        if (!$this->hasAnyFilterableRelation()) {
-            return false;
-        }
-        foreach ($this->filterableRelations as $relationName => $params) {
-            $relationKey = $this->hasFilterableRelation($params, $item);
-            if ($relationKey !== false) {
-                $item = $this->setFilterRelationKey($item, $relationKey);
-                $query = $this->filterRelation(
-                    $query,
-                    $item,
-                    $relationName,
-                    !$firstKey
-                );
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * @param $relationProperties
-     * @param $filter
-     *
-     * @return false|int|string
-     */
-    protected function hasFilterableRelation($relationProperties, $filter)
-    {
-        if (empty($relationProperties)) {
-            return false;
-        }
-        if (!is_array($relationProperties)) {
-            $relationProperties = [$relationProperties];
-        }
-        return $relationProperties[$filter->field] ??
-            array_search($filter->field, $relationProperties, true);
-    }
-
-    /**
-     * @param $item  'filterObject'
-     * @param $keyName
-     *
-     * @return object $filter
-     */
-    protected function setFilterRelationKey($item, $keyName)
-    {
-        if (!empty($keyName) and is_string($keyName)) {
-            $item->field = $keyName;
-        }
-        return $item;
-    }
-
-    /**
-     * @param $entries
-     * @param $filter
-     * @param $relation
-     * @param $orCondition
-     *
-     * @return Builder
-     */
-    protected function filterRelation($entries, $filter, $relation, bool $orCondition = false): Builder
-    {
-        if ($orCondition) {
-            return $entries->orWhereHas($relation, function ($query) use ($filter) {
-                $this->where($query, $filter);
-            });
-        }
-        return $entries->whereHas($relation, function ($query) use ($filter) {
-            $this->where($query, $filter);
-        });
-    }
-
-    /**
-     * @param $entries
-     *
-     * @return Builder
-     */
-    protected function load($entries): Builder
-    {
-        foreach ($this->getLoadRelations() as $load) {
-            if ($this->hasLoadableRelation($load)) {
-                $entries = $entries->with($load);
-            }
-        }
-        return $entries;
-    }
-
-    /**
-     * @param $entries
-     *
-     * @return Builder
-     */
-    protected function sort($entries): Builder
-    {
-        foreach ($this->getSortData() as $sort) {
-            $sort = $this->sanitizeSort($sort);
-            $field = $sort->field;
-            if ($this->hasSortableAttribute($field)) {
-                $dir = $sort->dir;
-                $entries = $entries->orderBy($field, $dir);
-            }
-        }
-        return $entries;
-    }
-
-    protected function sum($entries): array
-    {
-        $sum = array();
-        foreach ($this->getSumFields() as $sumField) {
-            if ($this->hasSummableAttribute($sumField)) {
-                $sum[$sumField] = $entries->sum($sumField);
-            }
-        }
-        return $sum;
-    }
-
-    /**
-     * @param  object  $filter
-     *
-     * @return object $filter
-     */
-    protected function sanitizeFilter(object $filter)
-    {
-        if ($this->isValidOperator($filter->op)) {
-            if (is_array($filter->value) and !in_array($filter->op, ['in', 'not'], true)) {
-                if ($filter->op === '=') {
-                    $filter->op = 'in';
-                } else {
-                    $filter->op = 'not';
-                }
-            } elseif ($filter->op === 'like' or $filter->op === 'not like') {
-                $filter->value = '%' . $filter->value . '%';
-            } elseif ($filter->op === 'is' and $filter->value !== null) {
-                $filter->op = '=';
-            } elseif ($filter->op === '=' and $filter->value === null) {
-                $filter->op = 'is';
-            } elseif (($filter->op === '!=' or $filter->op === '<>') and $filter->value === null) {
-                $filter->op = 'not';
-            }
-            return $filter;
-        }
-        throw new InvalidFilterException('Filter operator is invalid. unknown op: ' . $filter->op);
-    }
-
-    /**
-     * @param  object  $sort
-     *
-     * @return object $sort
-     */
-    protected function sanitizeSort(object $sort)
-    {
-        if ($sort->dir === 'desc') {
-            return $sort;
-        }
-        $sort->dir = 'asc';
-        return $sort;
-    }
-
-    protected function getMaxPaginationLimit()
-    {
-        return $this->maxPaginationLimit;
-    }
-
-    protected function canFilterWithoutPagination()
-    {
-        return (bool) $this->hasFiltersWithoutPagination;
-    }
-
-    /**
-     * @param $item
-     *
-     * @return bool
-     */
-    protected function isWhereIn($item): bool
-    {
-        return ($item->op === 'in' and is_array($item->value));
-    }
-
-    /**
-     * @param $item
-     *
-     * @return bool
-     */
-    protected function isWhereNotIn($item): bool
-    {
-        return ($item->op === 'not' and is_array($item->value));
-    }
-
-    /**
-     * @param $item
-     *
-     * @return bool
-     */
-    protected function isWhereNull($item): bool
-    {
-        return ($item->op === 'is' and $item->value === null);
-    }
-
-    /**
-     * @param $item
-     *
-     * @return bool
-     */
-    protected function isWhereNotNull($item): bool
-    {
-        return ($item->op === 'not' and $item->value === null);
+        return !empty($this->getSelectedAttributes());
     }
 
     /**
      * @return bool
      */
-    public function hasFilter(): bool
+    public function hasFilterGroup(): bool
     {
-        return !empty($this->filters);
+        return !empty($this->getFilterGroups());
     }
 
     /**
      * @return bool
      */
-    public function hasWith(): bool
+    public function hasRelations(): bool
     {
-        return !empty($this->loadRelations);
+        return !empty($this->getRelations());
     }
 
     /**
@@ -536,7 +282,7 @@ class Filter extends QueryFilter
      */
     public function hasPage(): bool
     {
-        return $this->hasOffset() and $this->hasLimit();
+        return $this->hasOffset() && $this->hasLimit();
     }
 
     /**
@@ -544,7 +290,7 @@ class Filter extends QueryFilter
      */
     public function hasSort(): bool
     {
-        return !empty($this->sortData);
+        return !empty($this->getSorts());
     }
 
     /**
@@ -552,66 +298,123 @@ class Filter extends QueryFilter
      */
     public function hasSum(): bool
     {
-        return !empty($this->sumFields);
+        return !empty($this->getSums());
     }
 
     /**
      * @return bool
      */
-    protected function hasLimit(): bool
+    public function hasLimit(): bool
     {
-        return !empty($this->limit);
+        return !is_null($this->getLimit());
     }
 
     /**
      * @return bool
      */
-    protected function hasOffset(): bool
+    public function hasOffset(): bool
     {
-        return isset($this->offset);
+        return !is_null($this->getOffset());
     }
 
     /**
-     * @return bool
+     * Convert filter to JSON string.
+     *
+     * @param  int  $options
+     * @return string
+     * @throws JsonException
      */
-    protected function hasAnyFilterableRelation(): bool
+    public function toJson($options = 0): string
     {
-        return !empty($this->filterableRelations);
+        $data = [];
+
+        if (!empty($this->getSelectedAttributes())) {
+            $data['fields'] = $this->getSelectedAttributes();
+        }
+
+        if (!empty($this->getFilterGroups())) {
+            $data['filters'] = $this->getFilterGroups();
+        }
+
+        if (!empty($this->getSorts())) {
+            $data['sorts'] = $this->getSorts();
+        }
+
+        if (!empty($this->getRelations())) {
+            $data['withs'] = $this->getRelations();
+        }
+
+        if (!empty($this->getSums())) {
+            $data['sums'] = $this->getSums();
+        }
+
+        if (!empty($this->getPage())) {
+            $data['page'] = $this->getPage();
+        }
+
+        return json_encode($data, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | $options);
     }
 
     /**
-     * @return bool
+     * @throws InvalidFilterException
      */
-    protected function hasFilterableAttribute($fieldName): bool
+    protected function validateFilter(array $filter): array
     {
-        return !empty($this->filterableAttributes)
-            and in_array($fieldName, $this->filterableAttributes, true);
+        if (!isset($filter['field']) || !is_string($filter['field'])) {
+            throw new InvalidFilterException('Filter field key not found or is invalid.');
+        }
+
+        if (!isset($filter['op']) || !is_string($filter['op'])) {
+            throw new InvalidFilterException('Filter op key not found or is invalid.');
+        }
+
+        if (!array_key_exists('value', $filter)) {
+            throw new InvalidFilterException('Value not found in filter.');
+        }
+
+        $this->validateOperator($filter['op']);
+
+        return $this->sanitizeFilter($filter);
+    }
+
+    protected function sanitizeFilter(array $filter): array
+    {
+        if (is_array($filter['value']) && !in_array($filter['op'], ['in', 'not'], true)) {
+            $filter['op'] = ($filter['op'] === '=') ? 'in' : 'not';
+        } elseif ($filter['op'] === 'like' || $filter['op'] === 'not like') {
+            $filter['value'] = '%'.$filter['value'].'%';
+        } elseif ($filter['value'] === null) {
+            $filter['op'] = ($filter['op'] === '!=' || $filter['op'] === '<>' || $filter['op'] === 'not') ? 'not' : 'is';
+        }
+
+        return $filter;
     }
 
     /**
-     * @return bool
+     * @throws InvalidFilterException
      */
-    protected function hasLoadableRelation($relationName): bool
+    protected function validateOperator(string $op): void
     {
-        return !empty($this->loadableRelations)
-            and in_array($relationName, $this->loadableRelations, true);
+        if (!in_array($op, $this->getValidOperators(), true)) {
+            throw new InvalidFilterException("Invalid operator in filter: $op");
+        }
     }
 
-    /**
-     * @return bool
-     */
-    protected function hasSortableAttribute($fieldName): bool
+    protected function getValidOperators(): array
     {
-        return !empty($this->sortableAttributes)
-            and in_array($fieldName, $this->sortableAttributes, true);
-    }
-
-    /**
-     * @return bool
-     */
-    protected function hasSummableAttribute($fieldName): bool
-    {
-        return !empty($this->summableAttributes)
-            and in_array($fieldName, $this->summableAttributes, true);
+        return [
+            '=',
+            '>',
+            '>=',
+            '<',
+            '<=',
+            '!=',
+            '<>',
+            'like',
+            'not like',
+            'is',
+            'not',
+            'in'
+        ];
     }
 }

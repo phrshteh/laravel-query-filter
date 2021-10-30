@@ -3,35 +3,24 @@
 namespace Omalizadeh\QueryFilter\Tests;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Arr;
 use Omalizadeh\QueryFilter\Filter;
 use Omalizadeh\QueryFilter\Tests\Filters\UserFilter;
 use Omalizadeh\QueryFilter\Tests\Models\User;
 
-class QueryFilterTest extends TestCase
+class RelationFilterTest extends TestCase
 {
     use RefreshDatabase;
 
     /** @test */
-    public function getDataWithoutFilterTest(): void
-    {
-        $filterResult = User::filter((new UserFilter()));
-
-        $users = $filterResult->data();
-
-        $this->assertCount($filterResult->count(), $users);
-    }
-
-    /** @test */
-    public function fieldEqualsFilterTest(): void
+    public function hasRelationFilterTest(): void
     {
         $filter = new Filter();
         $filter->setFilterGroups([
             [
                 [
-                    'field' => 'is_active',
+                    'field' => 'gender',
                     'op' => '=',
-                    'value' => true
+                    'value' => false
                 ]
             ]
         ]);
@@ -43,24 +32,33 @@ class QueryFilterTest extends TestCase
         $users = $filterResult->data();
 
         foreach ($users as $user) {
-            $this->assertTrue($user->isActive());
+            $this->assertTrue($user->isFemale());
         }
     }
 
     /** @test */
-    public function selectSpecificFieldsTest(): void
+    public function doesntHaveRelationFilterTest(): void
     {
         $filter = new Filter();
-        $filter->setSelectedAttributes(['phone']);
+        $filter->setFilterGroups([
+            [
+                [
+                    'field' => 'post_body',
+                    'op' => 'like',
+                    'value' => 'hello',
+                    'has' => false
+                ]
+            ]
+        ]);
 
         $modelFilter = new UserFilter($filter);
 
         $filterResult = User::filter($modelFilter);
 
-        $users = $filterResult->data()->toArray();
+        $users = $filterResult->data();
 
         foreach ($users as $user) {
-            $this->assertEmpty(Arr::except($user, ['phone']));
+            $this->assertFalse($user->posts()->where('body', 'like', '%hello%')->exists());
         }
     }
 }

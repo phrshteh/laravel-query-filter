@@ -2,33 +2,43 @@
 
 namespace Omalizadeh\QueryFilter\Tests\Models;
 
-use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Omalizadeh\QueryFilter\Traits\HasFilter;
 
-class User extends Authenticatable
+class User extends Model
 {
     use HasFilter;
 
-    protected $guarded = [
-        'id'
-    ];
+    protected $guarded = [];
 
     protected $casts = [
         'is_active' => 'boolean'
     ];
 
-    public function isMale()
+    public function profile(): HasOne
     {
-        return !is_null($this->gender) and $this->gender == true;
+        return $this->hasOne(Profile::class);
     }
 
-    public function isFemale()
+    public function posts(): HasMany
     {
-        return !is_null($this->gender) and $this->gender == false;
+        return $this->hasMany(Post::class);
     }
 
-    public function isActive()
+    public function isActive(): bool
     {
         return $this->is_active;
+    }
+
+    public function isFemale(): bool
+    {
+        return !empty($this->profile) && !is_null($this->profile->gender) && $this->profile->gender === false;
+    }
+
+    public function isMale(): bool
+    {
+        return !empty($this->profile) && $this->profile->gender === true;
     }
 }

@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
 
-class CreateTestUsersTable extends Migration
+class CreateTestingProfilesTable extends Migration
 {
     /**
      * Run the migrations.
@@ -15,14 +15,15 @@ class CreateTestUsersTable extends Migration
      */
     public function up()
     {
-        Schema::create('users', function (Blueprint $table) {
+        Schema::create('profiles', function (Blueprint $table) {
             $table->id();
-            $table->string('phone')->unique();
+            $table->unsignedBigInteger('user_id')->unique();
             $table->boolean('gender')->nullable();
-            $table->string('first_name');
-            $table->string('last_name');
-            $table->boolean('is_active')->default(true);
+            $table->string('first_name')->nullable();
+            $table->string('last_name')->nullable();
             $table->timestamps();
+
+            $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
         });
     }
 
@@ -33,6 +34,6 @@ class CreateTestUsersTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('users');
+        Schema::dropIfExists('profiles');
     }
 }

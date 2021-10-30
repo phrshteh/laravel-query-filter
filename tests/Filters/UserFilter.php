@@ -2,34 +2,56 @@
 
 namespace Omalizadeh\QueryFilter\Tests\Filters;
 
-use Omalizadeh\QueryFilter\Filter;
-use Illuminate\Http\Request;
+use Omalizadeh\QueryFilter\ModelFilter;
 
-class UserFilter extends Filter
+class UserFilter extends ModelFilter
 {
-    public function __construct(Request $request)
+    protected function selectableAttributes(): array
     {
-        parent::__construct($request);
-        $this->sortableAttributes = [
+        return [
+            'id',
+            'phone'
+        ];
+    }
+
+    protected function sortableAttributes(): array
+    {
+        return [
             'id',
             'created_at',
             'updated_at'
         ];
-        $this->filterableAttributes = [
+    }
+
+    protected function summableAttributes(): array
+    {
+        return [];
+    }
+
+    protected function filterableAttributes(): array
+    {
+        return [
             'id',
-            'gender',
             'phone',
-            'first_name',
             'is_active'
         ];
-        $this->filterableRelations = [];
-        $this->loadableRelations = [];
-        $this->summableAttributes = [];
+    }
 
-        // Max valid limit for pagination (records per page)
-        $this->maxPaginationLimit = 1000;
+    protected function filterableRelations(): array
+    {
+        return [
+            'profile' => [
+                'gender',
+                'first_name'
+            ],
+            'posts' => [
+                'post_body' => 'body'
+            ]
+        ];
+    }
 
-        // Data can be accessed without pagination
-        $this->hasFiltersWithoutPagination = true;
+    protected function loadableRelations(): array
+    {
+        return [];
     }
 }
