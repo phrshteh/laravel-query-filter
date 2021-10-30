@@ -2,301 +2,338 @@
 
 namespace Omalizadeh\QueryFilter;
 
-use Illuminate\Contracts\Support\Jsonable;
-use Illuminate\Support\Arr;
-use Omalizadeh\QueryFilter\Exceptions\InvalidFilterException;
+use Illuminate\Database\Eloquent\Builder;
 
-class QueryFilter implements Jsonable
+class QueryFilter
 {
-    protected $filters = [];
-    protected $sortData = [];
-    protected $sumFields = [];
-    protected $loadRelations = [];
-    protected $offset = null;
-    protected $limit = null;
+    protected Builder $builder;
+    protected ModelFilter $modelFilter;
 
-    public function __construct(array $filtersList = [])
+    public function __construct(Builder $builder, ModelFilter $modelFilter)
     {
-        $this->setFilters($filtersList);
+        $this->builder = $builder;
+        $this->modelFilter = $modelFilter;
     }
 
     /**
-     * @param  array  $filters
-     *
-     * @return $this
+     * @return QueryFilterResult
      */
-    public function addFilter(array $filters): QueryFilter
+    public function applyFilter(): QueryFilterResult
     {
-        $filters = $this->prepareFilter($filters);
-        $this->filters[] = $filters;
-        return $this;
+        if ($this->getFilter()->hasSelectedAttribute()) {
+            $this->select();
+        }
+
+        if ($this->getFilter()->hasFilterGroup()) {
+            $this->applyFilterGroups();
+        }
+
+        if ($this->getFilter()->hasRelations()) {
+            $this->load();
+        }
+
+        if ($this->getFilter()->hasSum()) {
+            $sums = $this->sum();
+        }
+
+        if ($this->getFilter()->hasSort()) {
+            $this->sort();
+        }
+
+        $this->applyPagination();
+
+        return new QueryFilterResult($this->getBuilder(), $this->getBuilder()->count(), $sums ?? []);
     }
 
-    public function addMagicFilter(array $filter)
+    protected function select(): void
     {
-        $key = key($filter);
-        $filter = ['field' => $key, 'op' => '=', 'value' => $filter[$key]];
-        return $this->addFilter([$filter]);
-    }
+        $validAttributes = [];
 
-    /**
-     * @param $filters
-     *
-     * @return mixed
-     */
-    protected function prepareFilter($filters)
-    {
-        $keys = ['field', 'op', 'value'];
-        $constFilters = $filters;
-        foreach ($filters as &$filter) {
-            $filter = Arr::only((array)$filter, $keys);
-            if (count($filter) !== 3) {
-                throw new InvalidFilterException('invalid filter. filter must have these keys: ' .
-                    join(', ', $keys) .
-                    ". input filter: " . print_r($constFilters, true));
+        foreach ($this->getFilter()->getSelectedAttributes() as $attribute) {
+            if ($this->getModelFilter()->hasSelectableAttribute($attribute)) {
+                $validAttributes[] = $attribute;
             }
-            $filter = (object)$filter;
         }
-        return $filters;
-    }
 
-    /**
-     * @param $field
-     * @param $dir
-     *
-     * @return QueryFilter
-     */
-    public function orderBy(string $field, string $dir)
-    {
-        return $this->addOrderBy([
-            'field' => $field,
-            'dir'   => $dir
-        ]);
-    }
-
-    /**
-     * @param $sortData
-     *
-     * @return $this
-     */
-    public function addOrderBy(array $sortData): QueryFilter
-    {
-        $sortData = $this->prepareOrderBy($sortData);
-        $this->sortData[] = $sortData;
-        return $this;
-    }
-
-    /**
-     * @param $sortData
-     *
-     * @return array
-     */
-    protected function prepareOrderBy($sortData)
-    {
-        $constSortData = $sortData;
-        $sortData = Arr::only($sortData, ['field', 'dir']);
-        if (count($sortData) !== 2) {
-            throw new InvalidFilterException('invalid order data. ' . print_r($constSortData, true));
+        if (!empty($validAttributes)) {
+            $this->getBuilder()->select($validAttributes);
         }
-        return (object) $sortData;
     }
 
-    /**
-     * @return array
-     */
-    public function getSortData(): array
+    protected function applyFilterGroups(): void
     {
-        return $this->sortData;
+        foreach ($this->getFilter()->getFilterGroups() as $filterGroup) {
+            $this->applyFilters($filterGroup);
+        }
+    }
+
+    protected function applyFilters(array $filterGroup): void
+    {
+        $this->getBuilder()->where(function (Builder $query) use ($filterGroup) {
+            foreach ($filterGroup as $filterKey => $filter) {
+                if (
+                    !$this->filterRelations($query, $filter, $filterKey === 0) &&
+                    $this->getModelFilter()->hasFilterableAttribute($filter['field'])
+                ) {
+                    $filterKey === 0 ? $this->where($query, $filter) : $this->orWhere($query, $filter);
+                }
+            }
+        });
+    }
+
+    protected function where(Builder $query, array $filter): Builder
+    {
+        if ($this->isWhereNull($filter)) {
+            return $this->whereNull($query, $filter['field']);
+        }
+        if ($this->isWhereNotNull($filter)) {
+            return $this->whereNotNull($query, $filter['field']);
+        }
+        if ($this->isWhereIn($filter)) {
+            return $this->whereIn($query, $filter);
+        }
+        if ($this->isWhereNotIn($filter)) {
+            return $this->whereNotIn($query, $filter);
+        }
+
+        return $query->where($filter['field'], $filter['op'], $filter['value']);
     }
 
     /**
-     * @param  array  $sortDataList
+     * @param  Builder  $query
+     * @param  array  $filter
+     * @return Builder
+     */
+    protected function orWhere(Builder $query, array $filter): Builder
+    {
+        if ($this->isWhereNull($filter)) {
+            return $this->whereNull($query, $filter['field'], true);
+        }
+        if ($this->isWhereNotNull($filter)) {
+            return $this->whereNotNull($query, $filter['field'], true);
+        }
+        if ($this->isWhereIn($filter)) {
+            return $this->whereIn($query, $filter, true);
+        }
+        if ($this->isWhereNotIn($filter)) {
+            return $this->whereNotIn($query, $filter, true);
+        }
+
+        return $query->orWhere($filter['field'], $filter['op'], $filter['value']);
+    }
+
+    /**
+     * @param  Builder  $query
+     * @param  array  $filter
+     * @param  bool  $orCondition
+     * @return Builder
+     */
+    protected function whereIn(Builder $query, array $filter, bool $orCondition = false): Builder
+    {
+        if ($orCondition) {
+            return $query->orWhereIn($filter['field'], $filter['value']);
+        }
+
+        return $query->whereIn($filter['field'], $filter['value']);
+    }
+
+    /**
+     * @param  Builder  $query
+     * @param  array  $filter
+     * @param  bool  $orCondition
+     * @return Builder
+     */
+    protected function whereNotIn(Builder $query, array $filter, bool $orCondition = false): Builder
+    {
+        if ($orCondition) {
+            return $query->orWhereNotIn($filter['field'], $filter['value']);
+        }
+
+        return $query->whereNotIn($filter['field'], $filter['value']);
+    }
+
+    /**
+     * @param  Builder  $query
+     * @param  string  $column
+     * @param  bool  $orCondition
+     * @return Builder
+     */
+    protected function whereNull(Builder $query, string $column, bool $orCondition = false): Builder
+    {
+        if ($orCondition) {
+            return $query->orWhereNull($column);
+        }
+
+        return $query->whereNull($column);
+    }
+
+    /**
+     * @param  Builder  $query
+     * @param  string  $column
+     * @param  bool  $orCondition
+     * @return Builder
+     */
+    protected function whereNotNull(Builder $query, string $column, bool $orCondition = false): Builder
+    {
+        if ($orCondition) {
+            return $query->orWhereNotNull($column);
+        }
+
+        return $query->whereNotNull($column);
+    }
+
+    protected function filterRelations(Builder $query, array $filter, bool $firstKey = true): bool
+    {
+        if (($relationInfo = $this->getModelFilter()->hasFilterableRelation($filter['field'])) !== false) {
+            [$relationName, $relationAttribute] = $relationInfo;
+            $filter['field'] = $relationAttribute;
+
+            $this->filterRelation($query, $filter, $relationName, !$firstKey);
+
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  Builder  $query
+     * @param  array  $filter
+     * @param  string  $relationName
+     * @param  bool  $orCondition
      *
-     * @return QueryFilter
+     * @return Builder
      */
-    public function setSortData(array $sortDataList): QueryFilter
-    {
-        foreach ($sortDataList as $sortData) {
-            $this->addOrderBy($sortData);
+    protected function filterRelation(
+        Builder $query,
+        array $filter,
+        string $relationName,
+        bool $orCondition = false
+    ): Builder {
+        if (isset($filter['has']) && $filter['has'] === false) {
+            if ($orCondition) {
+                return $query->orWhereDoesntHave($relationName, function ($query) use ($filter) {
+                    $this->where($query, $filter);
+                });
+            }
+
+            return $query->whereDoesntHave($relationName, function ($query) use ($filter) {
+                $this->where($query, $filter);
+            });
         }
-        return $this;
+
+        if ($orCondition) {
+            return $query->orWhereHas($relationName, function ($query) use ($filter) {
+                $this->where($query, $filter);
+            });
+        }
+
+        return $query->whereHas($relationName, function ($query) use ($filter) {
+            $this->where($query, $filter);
+        });
     }
 
-    /**
-     * @return array
-     */
-    public function getPage(): array
+    protected function applyPagination(): Builder
     {
-        return [
-            'limit' => $this->getLimit(),
-            'offset' => $this->getOffset()
-        ];
+        if (!$this->getFilter()->hasLimit() || $this->getFilter()->getLimit() > $this->getModelFilter()->getMaxPaginationLimit()) {
+            $this->getFilter()->setLimit($this->getModelFilter()->getMaxPaginationLimit());
+        }
+
+        if (!$this->getFilter()->hasOffset()) {
+            $this->getFilter()->setOffset(0);
+        }
+
+        return $this->paginate();
+    }
+
+    protected function paginate(): Builder
+    {
+        return $this->getBuilder()->limit($this->getFilter()->getLimit())->offset($this->getFilter()->getOffset());
+    }
+
+    protected function load(): void
+    {
+        foreach ($this->getFilter()->getRelations() as $relation) {
+            if ($this->getModelFilter()->hasLoadableRelation($relation)) {
+                $this->getBuilder()->with($relation);
+            }
+        }
+    }
+
+    protected function sort(): void
+    {
+        foreach ($this->getFilter()->getSorts() as $sort) {
+            if ($this->getModelFilter()->hasSortableAttribute($sort['field'])) {
+                $this->getBuilder()->orderBy($sort['field'], $sort['dir']);
+            }
+        }
+    }
+
+    protected function sum(): array
+    {
+        $sum = array();
+
+        foreach ($this->getFilter()->getSums() as $sumField) {
+            if ($this->getModelFilter()->hasSummableAttribute($sumField)) {
+                $sum[$sumField] = $this->getBuilder()->sum($sumField);
+            }
+        }
+
+        return $sum;
     }
 
     /**
-     * @param  array  $page
+     * @param $filter
      *
-     * @return QueryFilter
-     */
-    public function setPage(array $page): QueryFilter
-    {
-        if (!empty($page['limit']) and is_int($page['limit'])) {
-            $this->setLimit($page['limit']);
-        }
-        if (isset($page['offset']) and is_int($page['offset'])) {
-            $this->setOffset($page['offset']);
-        }
-        return $this;
-    }
-
-    public function getOffset(): ?int
-    {
-        return $this->offset;
-    }
-
-    /**
-     * @param $offset
-     *
-     * @return QueryFilter
-     */
-    public function setOffset(int $offset): QueryFilter
-    {
-        $this->offset = $offset;
-        return $this;
-    }
-
-    public function getLimit(): ?int
-    {
-        return $this->limit;
-    }
-
-    /**
-     * @param $limit
-     *
-     * @return QueryFilter
-     */
-    public function setLimit(int $limit): QueryFilter
-    {
-        $this->limit = $limit;
-        return $this;
-    }
-
-    /**
-     * @return array
-     */
-    public function getFilters(): array
-    {
-        return $this->filters;
-    }
-
-    /**
-     * @return array
-     */
-    public function getLoadRelations(): array
-    {
-        return $this->loadRelations;
-    }
-
-    public function setLoadRelations(array $loadRelations): QueryFilter
-    {
-        foreach ($loadRelations as $relation) {
-            $this->addLoadRelation($relation);
-        }
-        return $this;
-    }
-
-    public function addLoadRelation(string $loadRelation): QueryFilter
-    {
-        $this->loadRelations[] = $loadRelation;
-        return $this;
-    }
-
-    /**
-     * @param  array  $filtersList
-     *
-     * @return QueryFilter
-     */
-    public function setFilters(array $filtersList): QueryFilter
-    {
-        foreach ($filtersList as $filters) {
-            $this->addFilter($filters);
-        }
-        return $this;
-    }
-
-    public function getSumFields(): array
-    {
-        return $this->sumFields;
-    }
-
-    public function setSumFields(array $sumFieldsList): QueryFilter
-    {
-        foreach ($sumFieldsList as $sumField) {
-            $this->addSumField($sumField);
-        }
-        return $this;
-    }
-
-    public function addSumField(string $sumField)
-    {
-        return $this->sumFields[] = $sumField;
-    }
-
-    /**
      * @return bool
      */
-    protected function isValidOperator($op): bool
+    protected function isWhereIn($filter): bool
     {
-        $operators = [
-            '=',
-            '>',
-            '>=',
-            '<',
-            '<=',
-            '!=',
-            '<>',
-            'like',
-            'not like',
-            'is',
-            'not',
-            'in'
-        ];
-        return in_array($op, $operators, true);
+        return ($filter['op'] === 'in' and is_array($filter['value']));
     }
 
     /**
-     * Encode a value as JSON.
+     * @param $filter
      *
-     * @param  int  $options
-     *
-     * @return string
-     * @throws \JsonException
+     * @return bool
      */
-    public function toJson($options = 0)
+    protected function isWhereNotIn($filter): bool
     {
-        $options |= JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE;
-        $data = [];
-        if (!empty($this->getFilters())) {
-            $data['filters'] = $this->getFilters();
-        }
-        if (!empty($this->getPage())) {
-            $data['page'] = $this->getPage();
-        }
-        if (!empty($this->getSortData())) {
-            $data['sort'] = $this->getSortData();
-        }
-        if (!empty($this->getLoadRelations())) {
-            $data['with'] = $this->getLoadRelations();
-        }
-        return json_encode($data, JSON_THROW_ON_ERROR | $options);
+        return ($filter['op'] === 'not' and is_array($filter['value']));
     }
 
     /**
-     * @return string
-     * @throws \JsonException
+     * @param $filter
+     *
+     * @return bool
      */
-    public function __toString()
+    protected function isWhereNull($filter): bool
     {
-        return $this->toJson();
+        return ($filter['op'] === 'is' and $filter['value'] === null);
+    }
+
+    /**
+     * @param $filter
+     *
+     * @return bool
+     */
+    protected function isWhereNotNull($filter): bool
+    {
+        return ($filter['op'] === 'not' and $filter['value'] === null);
+    }
+
+    protected function getFilter(): Filter
+    {
+        return $this->getModelFilter()->getFilter();
+    }
+
+    protected function getModelFilter(): ModelFilter
+    {
+        return $this->modelFilter;
+    }
+
+    protected function getBuilder(): Builder
+    {
+        return $this->builder;
     }
 }

@@ -2,24 +2,74 @@
 
 namespace {{ namespace }};
 
-use Omalizadeh\QueryFilter\Filter;
-use Illuminate\Http\Request;
+use Omalizadeh\QueryFilter\ModelFilter;
 
-class {{ class }} extends Filter
+class {{ class }} extends ModelFilter
 {
-    public function __construct(Request $request)
+    /**
+     * Model selectable attributes. these attributes can be selected alone.
+     */
+    protected function selectableAttributes(): array
     {
-        parent::__construct($request);
-        $this->sortableAttributes = [];
-        $this->filterableAttributes = [];
-        $this->filterableRelations = [];
-        $this->loadableRelations = [];
-        $this->summableAttributes = [];
+        return [
+            //
+        ];
+    }
 
-        // Max valid limit for pagination (records per page)
-        $this->maxPaginationLimit = 1000;
+    /**
+     * Model sortable attributes.
+     */
+    protected function sortableAttributes(): array
+    {
+        return [
+            //
+        ];
+    }
 
-        // Data can be accessed without pagination
-        $this->hasFiltersWithoutPagination = true;
+    /**
+     * Model summable attributes.
+     */
+    protected function summableAttributes(): array
+    {
+        return [
+            //
+        ];
+    }
+
+    /**
+     * Model filterable attributes.
+     */
+    protected function filterableAttributes(): array
+    {
+        return [
+            //
+        ];
+    }
+
+    /**
+     * Attributes on relations that can be filtered.
+     *
+     * 'relation_name' => [
+     *      'filter_key' => 'db_column_name',
+     *  ],
+     * 'relation_name' => [
+     *      'filter_key_and_db_column_name',
+     *  ],
+     */
+    protected function filterableRelations(): array
+    {
+        return [
+            //
+        ];
+    }
+
+    /**
+     * Relations data that can be requested with model objects.
+     */
+    protected function loadableRelations(): array
+    {
+        return [
+            //
+        ];
     }
 }
