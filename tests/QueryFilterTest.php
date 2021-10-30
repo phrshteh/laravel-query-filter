@@ -17,9 +17,9 @@ class QueryFilterTest extends TestCase
     {
         $filterResult = User::filter((new UserFilter()));
 
-        $users = $filterResult->getData();
+        $users = $filterResult->data();
 
-        $this->assertCount($filterResult->getCount(), $users);
+        $this->assertCount($filterResult->count(), $users);
     }
 
     /** @test */
@@ -40,7 +40,7 @@ class QueryFilterTest extends TestCase
 
         $filterResult = User::filter($modelFilter);
 
-        $users = $filterResult->getData();
+        $users = $filterResult->data();
 
         foreach ($users as $user) {
             $this->assertTrue($user->isActive());
@@ -57,7 +57,7 @@ class QueryFilterTest extends TestCase
 
         $filterResult = User::filter($modelFilter);
 
-        $users = $filterResult->getData()->toArray();
+        $users = $filterResult->data()->toArray();
 
         foreach ($users as $user) {
             $this->assertEmpty(Arr::except($user, ['phone']));

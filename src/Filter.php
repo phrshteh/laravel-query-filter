@@ -21,13 +21,6 @@ class Filter implements Jsonable
     protected ?int $offset = null;
     protected ?int $limit = null;
 
-    /**
-     * @throws InvalidSortException
-     * @throws InvalidRelationException
-     * @throws InvalidSumException
-     * @throws InvalidSelectedAttributeException
-     * @throws InvalidFilterException
-     */
     public function __construct(
         array $selectedAttributes = [],
         array $filterGroups = [],
@@ -46,9 +39,6 @@ class Filter implements Jsonable
         $this->setLimit($limit);
     }
 
-    /**
-     * @throws InvalidSelectedAttributeException
-     */
     public function setSelectedAttributes(array $attributes): Filter
     {
         foreach ($attributes as $attribute) {
@@ -69,9 +59,6 @@ class Filter implements Jsonable
         return $this;
     }
 
-    /**
-     * @throws InvalidFilterException
-     */
     public function setFilterGroups(array $filterGroups): Filter
     {
         foreach ($filterGroups as $filterGroup) {
@@ -85,9 +72,6 @@ class Filter implements Jsonable
         return $this;
     }
 
-    /**
-     * @throws InvalidFilterException
-     */
     public function addFilterGroup(array $filterGroup): Filter
     {
         foreach ($filterGroup as &$filter) {
@@ -99,9 +83,6 @@ class Filter implements Jsonable
         return $this;
     }
 
-    /**
-     * @throws InvalidFilterException
-     */
     public function addFilter(string $attribute, $op = null, $value = null, bool $has = true): Filter
     {
         if (func_num_args() === 2) {

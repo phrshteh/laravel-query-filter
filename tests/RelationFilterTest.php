@@ -29,7 +29,7 @@ class RelationFilterTest extends TestCase
 
         $filterResult = User::filter($modelFilter);
 
-        $users = $filterResult->getData();
+        $users = $filterResult->data();
 
         foreach ($users as $user) {
             $this->assertTrue($user->isFemale());
@@ -55,7 +55,7 @@ class RelationFilterTest extends TestCase
 
         $filterResult = User::filter($modelFilter);
 
-        $users = $filterResult->getData();
+        $users = $filterResult->data();
 
         foreach ($users as $user) {
             $this->assertFalse($user->posts()->where('body', 'like', '%hello%')->exists());

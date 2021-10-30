@@ -18,22 +18,42 @@ class QueryFilterResult
         $this->sums = $sums;
     }
 
-    public function getCount(): int
+    /**
+     * Total count of records based on filters.
+     *
+     * @return int
+     */
+    public function count(): int
     {
         return $this->count;
     }
 
-    public function getSums(): array
+    /**
+     * Total sum of requested attributes based on filters.
+     *
+     * @return array
+     */
+    public function sums(): array
     {
         return $this->sums;
     }
 
-    public function getBuilder(): Builder
+    /**
+     * Builder containing all filters & pagination.
+     *
+     * @return Builder
+     */
+    public function builder(): Builder
     {
         return $this->builder;
     }
 
-    public function getData(): Collection
+    /**
+     * Execute query & return data.
+     *
+     * @return Collection
+     */
+    public function data(): Collection
     {
         return $this->builder->get();
     }

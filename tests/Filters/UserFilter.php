@@ -6,7 +6,7 @@ use Omalizadeh\QueryFilter\ModelFilter;
 
 class UserFilter extends ModelFilter
 {
-    protected function getSelectableAttributes(): array
+    protected function selectableAttributes(): array
     {
         return [
             'id',
@@ -14,7 +14,7 @@ class UserFilter extends ModelFilter
         ];
     }
 
-    protected function getSortableAttributes(): array
+    protected function sortableAttributes(): array
     {
         return [
             'id',
@@ -23,12 +23,12 @@ class UserFilter extends ModelFilter
         ];
     }
 
-    protected function getSummableAttributes(): array
+    protected function summableAttributes(): array
     {
         return [];
     }
 
-    protected function getFilterableAttributes(): array
+    protected function filterableAttributes(): array
     {
         return [
             'id',
@@ -37,7 +37,7 @@ class UserFilter extends ModelFilter
         ];
     }
 
-    protected function getFilterableRelations(): array
+    protected function filterableRelations(): array
     {
         return [
             'profile' => [
@@ -50,7 +50,7 @@ class UserFilter extends ModelFilter
         ];
     }
 
-    protected function getLoadableRelations(): array
+    protected function loadableRelations(): array
     {
         return [];
     }

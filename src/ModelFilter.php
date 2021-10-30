@@ -7,18 +7,12 @@ use Illuminate\Support\Arr;
 use JsonException;
 use Omalizadeh\QueryFilter\Exceptions\InvalidFilterException;
 
-abstract class ModelFilter
+class ModelFilter
 {
-    protected int $maxPaginationLimit = 1000;
     protected Filter $filter;
 
-    /**
-     * @throws Exceptions\InvalidRelationException
-     * @throws Exceptions\InvalidSortException
-     * @throws InvalidFilterException
-     * @throws Exceptions\InvalidSumException
-     * @throws Exceptions\InvalidSelectedAttributeException
-     */
+    protected int $maxPaginationLimit = 200;
+
     public function __construct(?Filter $filter = null)
     {
         if (is_null($filter)) {
@@ -28,17 +22,35 @@ abstract class ModelFilter
         }
     }
 
-    abstract protected function getSelectableAttributes(): array;
+    protected function selectableAttributes(): array
+    {
+        return [];
+    }
 
-    abstract protected function getSortableAttributes(): array;
+    protected function sortableAttributes(): array
+    {
+        return [];
+    }
 
-    abstract protected function getSummableAttributes(): array;
+    protected function summableAttributes(): array
+    {
+        return [];
+    }
 
-    abstract protected function getFilterableAttributes(): array;
+    protected function filterableAttributes(): array
+    {
+        return [];
+    }
 
-    abstract protected function getFilterableRelations(): array;
+    protected function filterableRelations(): array
+    {
+        return [];
+    }
 
-    abstract protected function getLoadableRelations(): array;
+    protected function loadableRelations(): array
+    {
+        return [];
+    }
 
     public function getMaxPaginationLimit(): int
     {
@@ -58,17 +70,17 @@ abstract class ModelFilter
 
     public function hasSelectableAttribute(string $attribute): bool
     {
-        return in_array($attribute, $this->getSelectableAttributes(), true);
+        return in_array($attribute, $this->selectableAttributes(), true);
     }
 
     public function hasFilterableAttribute(string $attribute): bool
     {
-        return in_array($attribute, $this->getFilterableAttributes(), true);
+        return in_array($attribute, $this->filterableAttributes(), true);
     }
 
     public function hasFilterableRelation(string $relationAttribute)
     {
-        foreach ($this->getFilterableRelations() as $relationName => $filterableRelationAttributes) {
+        foreach ($this->filterableRelations() as $relationName => $filterableRelationAttributes) {
             if (!is_array($filterableRelationAttributes) && $filterableRelationAttributes === $relationAttribute) {
                 return [$relationName, $relationAttribute];
             }
@@ -85,17 +97,17 @@ abstract class ModelFilter
 
     public function hasSortableAttribute(string $attribute): bool
     {
-        return in_array($attribute, $this->getSortableAttributes(), true);
+        return in_array($attribute, $this->sortableAttributes(), true);
     }
 
     public function hasSummableAttribute(string $attribute): bool
     {
-        return in_array($attribute, $this->getSummableAttributes(), true);
+        return in_array($attribute, $this->summableAttributes(), true);
     }
 
     public function hasLoadableRelation(string $relation): bool
     {
-        return in_array($relation, $this->getLoadableRelations(), true);
+        return in_array($relation, $this->loadableRelations(), true);
     }
 
     /**

@@ -6,28 +6,10 @@ use Omalizadeh\QueryFilter\ModelFilter;
 
 class {{ class }} extends ModelFilter
 {
-    protected function getSelectableAttributes(): array
-    {
-        return [
-            //
-        ];
-    }
-
-    protected function getSortableAttributes(): array
-    {
-        return [
-            //
-        ];
-    }
-
-    protected function getSummableAttributes(): array
-    {
-        return [
-            //
-        ];
-    }
-
-    protected function getFilterableAttributes(): array
+    /**
+     * Model selectable attributes. these attributes can be selected alone.
+     */
+    protected function selectableAttributes(): array
     {
         return [
             //
@@ -35,6 +17,38 @@ class {{ class }} extends ModelFilter
     }
 
     /**
+     * Model sortable attributes.
+     */
+    protected function sortableAttributes(): array
+    {
+        return [
+            //
+        ];
+    }
+
+    /**
+     * Model summable attributes.
+     */
+    protected function summableAttributes(): array
+    {
+        return [
+            //
+        ];
+    }
+
+    /**
+     * Model filterable attributes.
+     */
+    protected function filterableAttributes(): array
+    {
+        return [
+            //
+        ];
+    }
+
+    /**
+     * Attributes on relations that can be filtered.
+     *
      * 'relation_name' => [
      *      'filter_key' => 'db_column_name',
      *  ],
@@ -42,14 +56,17 @@ class {{ class }} extends ModelFilter
      *      'filter_key_and_db_column_name',
      *  ],
      */
-    protected function getFilterableRelations(): array
+    protected function filterableRelations(): array
     {
         return [
             //
         ];
     }
 
-    protected function getLoadableRelations(): array
+    /**
+     * Relations data that can be requested with model objects.
+     */
+    protected function loadableRelations(): array
     {
         return [
             //
