@@ -1,4 +1,5 @@
 [![Latest Stable Version](https://poser.pugx.org/omalizadeh/laravel-query-filter/v)](https://packagist.org/packages/omalizadeh/laravel-query-filter)
+[![Tests](https://github.com/omalizadeh/laravel-query-filter/actions/workflows/tests.yml/badge.svg)](https://github.com/omalizadeh/laravel-query-filter/actions/workflows/tests.yml)
 [![License](https://poser.pugx.org/omalizadeh/laravel-query-filter/license)](https://packagist.org/packages/omalizadeh/laravel-query-filter)
 [![Total Downloads](https://poser.pugx.org/omalizadeh/laravel-query-filter/downloads)](https://packagist.org/packages/omalizadeh/laravel-query-filter)
 
