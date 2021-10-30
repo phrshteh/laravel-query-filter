@@ -60,7 +60,7 @@ use Omalizadeh\QueryFilter\ModelFilter;
 
 class UserFilter extends ModelFilter
 {
-    protected function getSelectableAttributes(): array
+    protected function selectableAttributes(): array
     {
         return [
             'id',
@@ -68,7 +68,7 @@ class UserFilter extends ModelFilter
         ];
     }
 
-    protected function getSortableAttributes(): array
+    protected function sortableAttributes(): array
     {
         return [
             'id',
@@ -77,14 +77,14 @@ class UserFilter extends ModelFilter
         ];
     }
 
-    protected function getSummableAttributes(): array
+    protected function summableAttributes(): array
     {
         return [
             'views'
         ];
     }
 
-    protected function getFilterableAttributes(): array
+    protected function filterableAttributes(): array
     {
         return [
             'id',
@@ -93,7 +93,7 @@ class UserFilter extends ModelFilter
         ];
     }
 
-    protected function getFilterableRelations(): array
+    protected function filterableRelations(): array
     {
         return [
             'profile' => [
@@ -106,7 +106,7 @@ class UserFilter extends ModelFilter
         ];
     }
 
-    protected function getLoadableRelations(): array
+    protected function loadableRelations(): array
     {
         return [
             'profile'
@@ -151,14 +151,14 @@ public function index(UserFilter $userFilter)
 {
     $userFilterResult = User::filter($userFilter);
     
-    // count: total resources based on filters
-    $count = $userFilterResult->getCount();
+    // total resources based on filters
+    $count = $userFilterResult->count();
     
-    // sum: sum of given attributes in filter if there is any
-    $sums = $userFilterResult->getSums();
+    // total sum of given attributes in filter if there is any
+    $sums = $userFilterResult->sums();
     
     // Get query result as collection
-    $users = $userFilterResult->getData();
+    $users = $userFilterResult->data();
     
     // do stuff and return response
 }
