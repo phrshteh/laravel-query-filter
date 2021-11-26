@@ -152,13 +152,13 @@ public function index(UserFilter $userFilter)
 {
     $userFilterResult = User::filter($userFilter);
     
-    // total resources based on filters
+    // total resources count based on filters
     $count = $userFilterResult->count();
     
     // total sum of given attributes in filter if there is any
     $sums = $userFilterResult->sums();
     
-    // Get query result as collection
+    // Get query results as collection (paginated if there is pagination in filters)
     $users = $userFilterResult->data();
     
     // do stuff and return response
