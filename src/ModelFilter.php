@@ -13,9 +13,9 @@ class ModelFilter
 
     protected int $maxPaginationLimit = 200;
 
-    public function __construct(?Filter $filter = null)
+    public function __construct($filter = null)
     {
-        if (is_null($filter)) {
+        if (!$filter instanceof Filter) {
             $this->filter = $this->createFilterFromRequest(request());
         } else {
             $this->setFilter($filter);
