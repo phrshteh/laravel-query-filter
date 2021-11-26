@@ -13,40 +13,77 @@ class ModelFilter
 
     protected int $maxPaginationLimit = 200;
 
-    public function __construct(?Filter $filter = null)
+    public function __construct($filter = null)
     {
-        if (is_null($filter)) {
+        if (!$filter instanceof Filter) {
             $this->filter = $this->createFilterFromRequest(request());
         } else {
             $this->setFilter($filter);
         }
     }
 
+    /**
+     * Model selectable attributes. these attributes can be selected alone.
+     *
+     * @return array
+     */
     protected function selectableAttributes(): array
     {
         return [];
     }
 
+    /**
+     * Model sortable attributes.
+     *
+     * @return array
+     */
     protected function sortableAttributes(): array
     {
         return [];
     }
 
+    /**
+     * Model summable attributes.
+     *
+     * @return array
+     */
     protected function summableAttributes(): array
     {
         return [];
     }
 
+    /**
+     * Model filterable attributes.
+     *
+     * @return array
+     */
     protected function filterableAttributes(): array
     {
         return [];
     }
 
+    /**
+     * Attributes on relations that can be filtered.
+     *
+     * 'relation_name' => [
+     *      'filter_key' => 'db_column_name',
+     *  ],
+     * 'relation_name' => [
+     *      'filter_key_and_db_column_name',
+     *  ],
+     *
+     * @return array
+     */
     protected function filterableRelations(): array
     {
         return [];
     }
 
+    /**
+     * Relations data that can be requested with model objects.
+     *
+     * @return array
+     */
     protected function loadableRelations(): array
     {
         return [];
@@ -65,6 +102,7 @@ class ModelFilter
     public function setFilter(Filter $filter): ModelFilter
     {
         $this->filter = $filter;
+
         return $this;
     }
 
@@ -84,9 +122,11 @@ class ModelFilter
             if (!is_array($filterableRelationAttributes) && $filterableRelationAttributes === $relationAttribute) {
                 return [$relationName, $relationAttribute];
             }
+
             if (isset($filterableRelationAttributes[$relationAttribute])) {
                 return [$relationName, $filterableRelationAttributes[$relationAttribute]];
             }
+
             if (in_array($relationAttribute, $filterableRelationAttributes, true) !== false) {
                 return [$relationName, $relationAttribute];
             }
