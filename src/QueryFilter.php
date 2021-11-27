@@ -28,9 +28,7 @@ class QueryFilter
             $this->applyFilterGroups();
         }
 
-        if ($this->getFilter()->hasRelations()) {
-            $this->load();
-        }
+        $totalCount = $this->getBuilder()->count();
 
         if ($this->getFilter()->hasSum()) {
             $sums = $this->sum();
@@ -40,9 +38,13 @@ class QueryFilter
             $this->sort();
         }
 
+        if ($this->getFilter()->hasRelations()) {
+            $this->load();
+        }
+
         $this->applyPagination();
 
-        return new QueryFilterResult($this->getBuilder(), $this->getBuilder()->count(), $sums ?? []);
+        return new QueryFilterResult($this->getBuilder(), $totalCount, $sums ?? []);
     }
 
     protected function select(): void
