@@ -188,8 +188,8 @@ class ModelFilter
         }
 
         $offset = Arr::get($requestData, 'page.offset');
-        if (!empty($offset)) {
-            $filter->setLimit($offset);
+        if (!is_null($offset)) {
+            $filter->setOffset($offset);
         }
 
         $filterGroups = Arr::get($requestData, 'filters');
