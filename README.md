@@ -231,4 +231,4 @@ Then json filter will be:
 
 ## License
 
-Laravel Query Filter is open-sourced software licensed under the [MIT license](LICENSE.md).
+Laravel Query Filter is open-sourced software licensed under the [MIT license](LICENSE).
