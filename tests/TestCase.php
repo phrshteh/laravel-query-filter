@@ -21,7 +21,7 @@ class TestCase extends BaseTestCase
     protected function getPackageProviders($app): array
     {
         return [
-            QueryFilterServiceProvider::class
+            QueryFilterServiceProvider::class,
         ];
     }
 

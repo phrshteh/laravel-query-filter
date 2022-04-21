@@ -7,8 +7,7 @@ use Illuminate\Support\Facades\File;
 
 class CommandTest extends TestCase
 {
-    /** @test */
-    public function makeFilterCommandCreatesFilterClassTest(): void
+    public function testMakeFilterCommandCreatesFilterClass(): void
     {
         $filterFileName = 'TestFilter.php';
 
@@ -17,7 +16,9 @@ class CommandTest extends TestCase
         }
 
         $this->assertFalse(File::exists($this->getFilterPath($filterFileName)));
+
         Artisan::call('make:filter TestFilter');
+
         $this->assertTrue(File::exists($this->getFilterPath($filterFileName)));
     }
 }

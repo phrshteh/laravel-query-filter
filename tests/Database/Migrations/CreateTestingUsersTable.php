@@ -2,9 +2,9 @@
 
 namespace Omalizadeh\QueryFilter\Tests\Database\Migrations;
 
-use Illuminate\Support\Facades\Schema;
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
 class CreateTestingUsersTable extends Migration
 {
@@ -15,9 +15,10 @@ class CreateTestingUsersTable extends Migration
      */
     public function up()
     {
-        Schema::create('users', function (Blueprint $table) {
+        Schema::create('users', static function (Blueprint $table) {
             $table->id();
             $table->string('phone')->unique();
+            $table->unsignedDecimal('paid_amount', 12);
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });

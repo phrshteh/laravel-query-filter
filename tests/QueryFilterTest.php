@@ -12,54 +12,43 @@ class QueryFilterTest extends TestCase
 {
     use RefreshDatabase;
 
-    /** @test */
-    public function getDataWithoutFilterTest(): void
+    public function testResultWithoutFilter(): void
     {
         $filterResult = User::filter((new UserFilter()));
 
-        $users = $filterResult->data();
-
-        $this->assertCount($filterResult->count(), $users);
+        $this->assertCount($filterResult->count(), $filterResult->data());
     }
 
-    /** @test */
-    public function fieldEqualsFilterTest(): void
+    public function testFieldIsEqualFilter(): void
     {
         $filter = new Filter();
+
         $filter->setFilterGroups([
             [
                 [
                     'field' => 'is_active',
                     'op' => '=',
-                    'value' => true
-                ]
-            ]
+                    'value' => true,
+                ],
+            ],
         ]);
 
-        $modelFilter = new UserFilter($filter);
+        $filterResult = User::filter(new UserFilter($filter));
 
-        $filterResult = User::filter($modelFilter);
-
-        $users = $filterResult->data();
-
-        foreach ($users as $user) {
+        foreach ($filterResult->data() as $user) {
             $this->assertTrue($user->isActive());
         }
     }
 
-    /** @test */
-    public function selectSpecificFieldsTest(): void
+    public function testSelectingSpecificFieldsInFilters(): void
     {
         $filter = new Filter();
+
         $filter->setSelectedAttributes(['phone']);
 
-        $modelFilter = new UserFilter($filter);
+        $filterResult = User::filter(new UserFilter($filter));
 
-        $filterResult = User::filter($modelFilter);
-
-        $users = $filterResult->data()->toArray();
-
-        foreach ($users as $user) {
+        foreach ($filterResult->data()->toArray() as $user) {
             $this->assertEmpty(Arr::except($user, ['phone']));
         }
     }

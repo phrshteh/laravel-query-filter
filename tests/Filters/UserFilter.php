@@ -10,7 +10,7 @@ class UserFilter extends ModelFilter
     {
         return [
             'id',
-            'phone'
+            'phone',
         ];
     }
 
@@ -19,13 +19,15 @@ class UserFilter extends ModelFilter
         return [
             'id',
             'created_at',
-            'updated_at'
+            'updated_at',
         ];
     }
 
     protected function summableAttributes(): array
     {
-        return [];
+        return [
+            'paid_amount',
+        ];
     }
 
     protected function filterableAttributes(): array
@@ -33,7 +35,8 @@ class UserFilter extends ModelFilter
         return [
             'id',
             'phone',
-            'is_active'
+            'paid_amount',
+            'is_active',
         ];
     }
 
@@ -42,11 +45,11 @@ class UserFilter extends ModelFilter
         return [
             'profile' => [
                 'gender',
-                'first_name'
+                'first_name',
             ],
             'posts' => [
-                'post_body' => 'body'
-            ]
+                'post_body' => 'body',
+            ],
         ];
     }
 
