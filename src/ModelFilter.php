@@ -16,7 +16,7 @@ class ModelFilter
     public function __construct($filter = null)
     {
         if (!$filter instanceof Filter) {
-            $this->filter = $this->createFilterFromRequest(request());
+            $this->setFilter($this->createFilterFromRequest(request()));
         } else {
             $this->setFilter($filter);
         }
@@ -159,54 +159,72 @@ class ModelFilter
      */
     private function createFilterFromRequest(Request $request): Filter
     {
-        try {
-            $requestData = json_decode(
-                $request->input('q', '{}'),
-                true,
-                512,
-                JSON_THROW_ON_ERROR
-            );
-        } catch (JsonException $ex) {
-            throw new InvalidFilterException('Cannot parse json filter. check json structure.');
-        }
+        $arrayFilter = $this->parseJsonFilterFromRequest($request);
 
         $filter = new Filter();
 
-        $selectedFields = Arr::get($requestData, 'fields');
+        $selectedFields = Arr::get($arrayFilter, 'fields');
+
         if (!empty($selectedFields)) {
             $filter->setSelectedAttributes($selectedFields);
         }
 
-        $sorts = Arr::get($requestData, 'sorts');
+        $sorts = Arr::get($arrayFilter, 'sorts');
+
         if (!empty($sorts)) {
             $filter->setSorts($sorts);
         }
 
-        $limit = Arr::get($requestData, 'page.limit');
+        $limit = Arr::get($arrayFilter, 'page.limit');
+
         if (!empty($limit)) {
             $filter->setLimit($limit);
         }
 
-        $offset = Arr::get($requestData, 'page.offset');
+        $offset = Arr::get($arrayFilter, 'page.offset');
+
         if (!is_null($offset)) {
             $filter->setOffset($offset);
         }
 
-        $filterGroups = Arr::get($requestData, 'filters');
+        $filterGroups = Arr::get($arrayFilter, 'filters');
+
         if (!empty($filterGroups)) {
             $filter->setFilterGroups($filterGroups);
         }
 
-        $relations = Arr::get($requestData, 'withs');
+        $relations = Arr::get($arrayFilter, 'withs');
+
         if (!empty($relations)) {
             $filter->setRelations($relations);
         }
 
-        $sums = Arr::get($requestData, 'sums');
+        $sums = Arr::get($arrayFilter, 'sums');
+
         if (!empty($sums)) {
             $filter->setSums($sums);
         }
 
         return $filter;
+    }
+
+    private function parseJsonFilterFromRequest(Request $request): ?array
+    {
+        try {
+            if ($request->filled('filter')) {
+                $json = $request->input('filter');
+            } else {
+                $json = $request->input('q', '{}');
+            }
+
+            return json_decode(
+                $json,
+                true,
+                512,
+                JSON_THROW_ON_ERROR,
+            );
+        } catch (JsonException $ex) {
+            throw new InvalidFilterException('Cannot parse json filter. check json structure.');
+        }
     }
 }
