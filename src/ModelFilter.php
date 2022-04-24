@@ -159,49 +159,49 @@ class ModelFilter
      */
     private function createFilterFromRequest(Request $request): Filter
     {
-        $arrayFilter = $this->parseJsonFilterFromRequest($request);
+        $filterArray = $this->parseJsonFilterFromRequest($request);
 
         $filter = new Filter();
 
-        $selectedFields = Arr::get($arrayFilter, 'fields');
+        $selectedFields = Arr::get($filterArray, 'fields');
 
         if (!empty($selectedFields)) {
             $filter->setSelectedAttributes($selectedFields);
         }
 
-        $sorts = Arr::get($arrayFilter, 'sorts');
+        $sorts = Arr::has($filterArray, 'sort') ? Arr::get($filterArray, 'sort') : Arr::get($filterArray, 'sorts');
 
         if (!empty($sorts)) {
             $filter->setSorts($sorts);
         }
 
-        $limit = Arr::get($arrayFilter, 'page.limit');
+        $limit = Arr::get($filterArray, 'page.limit');
 
         if (!empty($limit)) {
             $filter->setLimit($limit);
         }
 
-        $offset = Arr::get($arrayFilter, 'page.offset');
+        $offset = Arr::get($filterArray, 'page.offset');
 
         if (!is_null($offset)) {
             $filter->setOffset($offset);
         }
 
-        $filterGroups = Arr::get($arrayFilter, 'filters');
+        $filterGroups = Arr::get($filterArray, 'filters');
 
         if (!empty($filterGroups)) {
             $filter->setFilterGroups($filterGroups);
         }
 
-        $relations = Arr::get($arrayFilter, 'withs');
+        $relations = Arr::has($filterArray, 'with') ? Arr::get($filterArray, 'with') : Arr::get($filterArray, 'withs');
 
-        if (!empty($relations)) {
+        if (!empty($relations) && is_array($relations)) {
             $filter->setRelations($relations);
         }
 
-        $sums = Arr::get($arrayFilter, 'sums');
+        $sums = Arr::has($filterArray, 'sum') ? Arr::get($filterArray, 'sum') : Arr::get($filterArray, 'sums');
 
-        if (!empty($sums)) {
+        if (!empty($sums) && is_array($sums)) {
             $filter->setSums($sums);
         }
 
