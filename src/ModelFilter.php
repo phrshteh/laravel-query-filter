@@ -119,15 +119,19 @@ class ModelFilter
     public function hasFilterableRelation(string $relationAttribute)
     {
         foreach ($this->filterableRelations() as $relationName => $filterableRelationAttributes) {
-            if (!is_array($filterableRelationAttributes) && $filterableRelationAttributes === $relationAttribute) {
-                return [$relationName, $relationAttribute];
-            }
-
             if (isset($filterableRelationAttributes[$relationAttribute])) {
                 return [$relationName, $filterableRelationAttributes[$relationAttribute]];
             }
 
-            if (in_array($relationAttribute, $filterableRelationAttributes, true) !== false) {
+            if (
+                is_array($filterableRelationAttributes)
+                && array_is_list($filterableRelationAttributes)
+                && in_array($relationAttribute, $filterableRelationAttributes, true) !== false
+            ) {
+                return [$relationName, $relationAttribute];
+            }
+
+            if (!is_array($filterableRelationAttributes) && $filterableRelationAttributes === $relationAttribute) {
                 return [$relationName, $relationAttribute];
             }
         }
