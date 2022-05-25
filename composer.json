@@ -38,7 +38,8 @@
         }
     },
     "require-dev": {
-        "orchestra/testbench": "^5.20|^6.24|^7.0"
+        "friendsofphp/php-cs-fixer": "^3.8",
+        "orchestra/testbench": "^6.24|^7.0"
     },
     "autoload-dev": {
         "psr-4": {
@@ -56,7 +57,8 @@
         }
     },
     "scripts": {
-        "test": "phpunit --color=always"
+        "test": "phpunit --color=always",
+        "cs-fix": "./vendor/bin/php-cs-fixer fix -v --show-progress=dots"
     },
     "minimum-stability": "dev",
     "prefer-stable": true
