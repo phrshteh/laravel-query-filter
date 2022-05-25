@@ -2,19 +2,24 @@
 
 namespace Omalizadeh\QueryFilter\Tests\Models;
 
+use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Omalizadeh\QueryFilter\Tests\Database\Factories\UserFactory;
 use Omalizadeh\QueryFilter\Traits\HasFilter;
 
 class User extends Model
 {
-    use HasFilter;
+    use HasFilter, HasFactory;
 
-    protected $guarded = [];
+    protected $guarded = [
+        'id',
+    ];
 
     protected $casts = [
-        'is_active' => 'boolean'
+        'is_active' => 'boolean',
     ];
 
     public function profile(): HasOne
@@ -40,5 +45,10 @@ class User extends Model
     public function isMale(): bool
     {
         return !empty($this->profile) && $this->profile->gender === true;
+    }
+
+    protected static function newFactory(): Factory
+    {
+        return new UserFactory();
     }
 }
