@@ -45,7 +45,7 @@ class TestingDataSeeder extends Seeder
             'gender' => true,
         ]);
         $user->posts()->create([
-            'body' => 'hello'
+            'body' => 'hello',
         ]);
 
         $user = User::create([
@@ -62,7 +62,7 @@ class TestingDataSeeder extends Seeder
             'last_name' => 'Saremi',
         ]);
         $user->posts()->create([
-            'body' => 'bye bye.'
+            'body' => 'bye bye.',
         ]);
 
         $user = User::create([
@@ -71,7 +71,7 @@ class TestingDataSeeder extends Seeder
             'paid_amount' => 100.00,
             'is_active' => true,
             'created_at' => '2021-07-02 14:40:00',
-            'updated_at' => '2021-07-02 19:25:00'
+            'updated_at' => '2021-07-02 19:25:00',
         ]);
         $user->profile()->create([
             'gender' => null,

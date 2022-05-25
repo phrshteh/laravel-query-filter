@@ -7,10 +7,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Profile extends Model
 {
-    protected $guarded = [];
+    protected $guarded = [
+        'id',
+    ];
 
     protected $casts = [
-        'gender' => 'boolean'
+        'gender' => 'boolean',
     ];
 
     public function user(): BelongsTo

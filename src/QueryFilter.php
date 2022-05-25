@@ -273,7 +273,7 @@ class QueryFilter
 
     protected function sum(): array
     {
-        $sum = array();
+        $sum = [];
 
         foreach ($this->getFilter()->getSums() as $sumField) {
             if ($this->getModelFilter()->hasSummableAttribute($sumField)) {

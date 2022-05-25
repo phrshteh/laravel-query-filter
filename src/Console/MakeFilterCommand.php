@@ -8,7 +8,7 @@ use Symfony\Component\Console\Input\InputArgument;
 class MakeFilterCommand extends GeneratorCommand
 {
     protected $signature = 'make:filter {name}';
-    protected $type = "Filter";
+    protected $type = 'Filter';
 
     protected function getStub()
     {

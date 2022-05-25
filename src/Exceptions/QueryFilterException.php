@@ -19,7 +19,7 @@ class QueryFilterException extends Exception
     public function render(): \Illuminate\Http\JsonResponse
     {
         return response()->json([
-            'message' => $this->message
+            'message' => $this->message,
         ], $this->code);
     }
 }

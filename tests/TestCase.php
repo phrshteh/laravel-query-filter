@@ -55,6 +55,6 @@ class TestCase extends BaseTestCase
 
     protected function getFilterPath(?string $filterFileName = null): string
     {
-        return app_path("Filters"."/$filterFileName");
+        return app_path('Filters'."/$filterFileName");
     }
 }

@@ -98,7 +98,7 @@ class Filter implements Jsonable
             'field' => $attribute,
             'op' => $op,
             'value' => $value,
-            'has' => $has
+            'has' => $has,
         ]);
 
         $this->filterGroups[] = [$filter];
@@ -161,7 +161,7 @@ class Filter implements Jsonable
     {
         $this->sorts[] = [
             'field' => $attribute,
-            'dir' => strtolower($dir) === 'desc' ? 'desc' : 'asc'
+            'dir' => strtolower($dir) === 'desc' ? 'desc' : 'asc',
         ];
 
         return $this;
@@ -232,7 +232,7 @@ class Filter implements Jsonable
     {
         return [
             'limit' => $this->getLimit(),
-            'offset' => $this->getOffset()
+            'offset' => $this->getOffset(),
         ];
     }
 
@@ -414,7 +414,7 @@ class Filter implements Jsonable
             'not like',
             'is',
             'not',
-            'in'
+            'in',
         ];
     }
 }

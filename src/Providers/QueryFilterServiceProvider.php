@@ -16,7 +16,7 @@ class QueryFilterServiceProvider extends ServiceProvider
     {
         if ($this->app->runningInConsole()) {
             $this->commands([
-                MakeFilterCommand::class
+                MakeFilterCommand::class,
             ]);
         }
     }
