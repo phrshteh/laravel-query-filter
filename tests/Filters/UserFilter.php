@@ -53,6 +53,15 @@ class UserFilter extends ModelFilter
         ];
     }
 
+    protected function filterableRelationsCount(): array
+    {
+        return [
+            'posts' => [
+                'posts_count',
+            ],
+        ];
+    }
+
     protected function loadableRelations(): array
     {
         return [];

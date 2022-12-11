@@ -15,9 +15,6 @@ class QueryFilter
         $this->modelFilter = $modelFilter;
     }
 
-    /**
-     * @return QueryFilterResult
-     */
     public function applyFilter(): QueryFilterResult
     {
         if ($this->getFilter()->hasSelectedAttribute()) {
@@ -75,6 +72,7 @@ class QueryFilter
             foreach ($filterGroup as $filterKey => $filter) {
                 if (
                     !$this->filterRelations($query, $filter, $filterKey === 0) &&
+                    !$this->filterRelationsCount($query, $filter, $filterKey === 0) &&
                     $this->getModelFilter()->hasFilterableAttribute($filter['field'])
                 ) {
                     $filterKey === 0 ? $this->where($query, $filter) : $this->orWhere($query, $filter);
@@ -101,11 +99,6 @@ class QueryFilter
         return $query->where($filter['field'], $filter['op'], $filter['value']);
     }
 
-    /**
-     * @param  Builder  $query
-     * @param  array  $filter
-     * @return Builder
-     */
     protected function orWhere(Builder $query, array $filter): Builder
     {
         if ($this->isWhereNull($filter)) {
@@ -124,12 +117,6 @@ class QueryFilter
         return $query->orWhere($filter['field'], $filter['op'], $filter['value']);
     }
 
-    /**
-     * @param  Builder  $query
-     * @param  array  $filter
-     * @param  bool  $orCondition
-     * @return Builder
-     */
     protected function whereIn(Builder $query, array $filter, bool $orCondition = false): Builder
     {
         if ($orCondition) {
@@ -139,12 +126,6 @@ class QueryFilter
         return $query->whereIn($filter['field'], $filter['value']);
     }
 
-    /**
-     * @param  Builder  $query
-     * @param  array  $filter
-     * @param  bool  $orCondition
-     * @return Builder
-     */
     protected function whereNotIn(Builder $query, array $filter, bool $orCondition = false): Builder
     {
         if ($orCondition) {
@@ -154,12 +135,6 @@ class QueryFilter
         return $query->whereNotIn($filter['field'], $filter['value']);
     }
 
-    /**
-     * @param  Builder  $query
-     * @param  string  $column
-     * @param  bool  $orCondition
-     * @return Builder
-     */
     protected function whereNull(Builder $query, string $column, bool $orCondition = false): Builder
     {
         if ($orCondition) {
@@ -169,12 +144,6 @@ class QueryFilter
         return $query->whereNull($column);
     }
 
-    /**
-     * @param  Builder  $query
-     * @param  string  $column
-     * @param  bool  $orCondition
-     * @return Builder
-     */
     protected function whereNotNull(Builder $query, string $column, bool $orCondition = false): Builder
     {
         if ($orCondition) {
@@ -182,6 +151,16 @@ class QueryFilter
         }
 
         return $query->whereNotNull($column);
+    }
+
+    protected function having(Builder $query, array $filter): Builder
+    {
+        return $query->having($filter['field'], $filter['op'], $filter['value']);
+    }
+
+    protected function orHaving(Builder $query, array $filter): Builder
+    {
+        return $query->orHaving($filter['field'], $filter['op'], $filter['value']);
     }
 
     protected function filterRelations(Builder $query, array $filter, bool $firstKey = true): bool
@@ -198,14 +177,19 @@ class QueryFilter
         return false;
     }
 
-    /**
-     * @param  Builder  $query
-     * @param  array  $filter
-     * @param  string  $relationName
-     * @param  bool  $orCondition
-     *
-     * @return Builder
-     */
+    protected function filterRelationsCount(Builder $query, array $filter, bool $firstKey = true): bool
+    {
+        if (($relationCountAttribute = $this->getModelFilter()->hasFilterableRelationCount($filter['field'])) !== false) {
+            $filter['field'] = $relationCountAttribute;
+
+            $this->filterRelationCount($query, $filter, !$firstKey);
+
+            return true;
+        }
+
+        return false;
+    }
+
     protected function filterRelation(
         Builder $query,
         array $filter,
@@ -233,6 +217,18 @@ class QueryFilter
         return $query->whereHas($relationName, function ($query) use ($filter) {
             $this->where($query, $filter);
         });
+    }
+
+    protected function filterRelationCount(
+        Builder $query,
+        array $filter,
+        bool $orCondition = false
+    ): Builder {
+        if ($orCondition) {
+            return $this->orHaving($query, $filter);
+        }
+
+        return $this->having($query, $filter);
     }
 
     protected function applyPagination(): Builder
@@ -284,44 +280,24 @@ class QueryFilter
         return $sum;
     }
 
-    /**
-     * @param $filter
-     *
-     * @return bool
-     */
-    protected function isWhereIn($filter): bool
+    protected function isWhereIn(array $filter): bool
     {
-        return ($filter['op'] === 'in' and is_array($filter['value']));
+        return ($filter['op'] === 'in' && is_array($filter['value']));
     }
 
-    /**
-     * @param $filter
-     *
-     * @return bool
-     */
-    protected function isWhereNotIn($filter): bool
+    protected function isWhereNotIn(array $filter): bool
     {
-        return ($filter['op'] === 'not' and is_array($filter['value']));
+        return ($filter['op'] === 'not' && is_array($filter['value']));
     }
 
-    /**
-     * @param $filter
-     *
-     * @return bool
-     */
-    protected function isWhereNull($filter): bool
+    protected function isWhereNull(array $filter): bool
     {
-        return ($filter['op'] === 'is' and $filter['value'] === null);
+        return ($filter['op'] === 'is' && $filter['value'] === null);
     }
 
-    /**
-     * @param $filter
-     *
-     * @return bool
-     */
-    protected function isWhereNotNull($filter): bool
+    protected function isWhereNotNull(array $filter): bool
     {
-        return ($filter['op'] === 'not' and $filter['value'] === null);
+        return ($filter['op'] === 'not' && $filter['value'] === null);
     }
 
     protected function getFilter(): Filter

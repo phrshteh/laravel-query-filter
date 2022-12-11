@@ -80,6 +80,16 @@ class ModelFilter
     }
 
     /**
+     * Relations count that can be filtered.
+     *
+     * @return array
+     */
+    protected function filterableRelationsCount(): array
+    {
+        return [];
+    }
+
+    /**
      * Relations data that can be requested with model objects.
      *
      * @return array
@@ -133,6 +143,29 @@ class ModelFilter
 
             if (!is_array($filterableRelationAttributes) && $filterableRelationAttributes === $relationAttribute) {
                 return [$relationName, $relationAttribute];
+            }
+        }
+
+        return false;
+    }
+
+    public function hasFilterableRelationCount(string $relationCountAttribute)
+    {
+        foreach ($this->filterableRelationsCount() as $relationName => $filterableRelationAttributes) {
+            if (isset($filterableRelationAttributes[$relationCountAttribute]) && is_string($filterableRelationAttributes[$relationCountAttribute])) {
+                return $filterableRelationAttributes[$relationCountAttribute];
+            }
+
+            if (
+                is_array($filterableRelationAttributes)
+                && array_is_list($filterableRelationAttributes)
+                && in_array($relationCountAttribute, $filterableRelationAttributes, true) !== false
+            ) {
+                return $relationCountAttribute;
+            }
+
+            if (!is_array($filterableRelationAttributes) && $filterableRelationAttributes === $relationCountAttribute) {
+                return $relationCountAttribute;
             }
         }
 
