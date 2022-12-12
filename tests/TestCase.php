@@ -27,8 +27,8 @@ class TestCase extends BaseTestCase
 
     protected function getEnvironmentSetUp($app): void
     {
-        $app['config']->set('database.default', 'test_db');
-        $app['config']->set('database.connections.test_db', [
+        $app['config']->set('database.default', 'query_filter_test');
+        $app['config']->set('database.connections.query_filter_test', [
             'driver' => 'sqlite',
             'database' => ':memory:',
             'prefix' => '',
