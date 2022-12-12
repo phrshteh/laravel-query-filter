@@ -2,10 +2,13 @@
 
 namespace Omalizadeh\QueryFilter\Tests\Filters;
 
+use Illuminate\Database\Eloquent\Builder;
 use Omalizadeh\QueryFilter\ModelFilter;
 
 class UserFilter extends ModelFilter
 {
+    protected int $maxPaginationLimit = 10;
+
     protected function selectableAttributes(): array
     {
         return [
@@ -58,6 +61,9 @@ class UserFilter extends ModelFilter
         return [
             'posts' => [
                 'posts_count',
+                'bye_posts_count' => function (Builder $query) {
+                    return $query->where('body', 'like', '%bye%');
+                },
             ],
         ];
     }

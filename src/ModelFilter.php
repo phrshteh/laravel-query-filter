@@ -2,6 +2,7 @@
 
 namespace Omalizadeh\QueryFilter;
 
+use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use JsonException;
@@ -153,19 +154,22 @@ class ModelFilter
     {
         foreach ($this->filterableRelationsCount() as $relationName => $filterableRelationAttributes) {
             if (isset($filterableRelationAttributes[$relationCountAttribute]) && is_string($filterableRelationAttributes[$relationCountAttribute])) {
-                return $filterableRelationAttributes[$relationCountAttribute];
+                return [$relationName, $filterableRelationAttributes[$relationCountAttribute], null];
+            }
+
+            if (isset($filterableRelationAttributes[$relationCountAttribute]) && $filterableRelationAttributes[$relationCountAttribute] instanceof Closure) {
+                return [$relationName, $relationCountAttribute, $filterableRelationAttributes[$relationCountAttribute]];
             }
 
             if (
                 is_array($filterableRelationAttributes)
-                && array_is_list($filterableRelationAttributes)
                 && in_array($relationCountAttribute, $filterableRelationAttributes, true) !== false
             ) {
-                return $relationCountAttribute;
+                return [$relationName, $relationCountAttribute, null];
             }
 
             if (!is_array($filterableRelationAttributes) && $filterableRelationAttributes === $relationCountAttribute) {
-                return $relationCountAttribute;
+                return [$relationName, $relationCountAttribute, null];
             }
         }
 

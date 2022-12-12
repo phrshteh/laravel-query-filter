@@ -2,6 +2,7 @@
 
 namespace Omalizadeh\QueryFilter;
 
+use Closure;
 use Illuminate\Database\Eloquent\Builder;
 
 class QueryFilter
@@ -61,20 +62,24 @@ class QueryFilter
 
     protected function applyFilterGroups(): void
     {
-        foreach ($this->getFilter()->getFilterGroups() as $filterGroup) {
-            $this->applyFilters($filterGroup);
+        foreach ($this->getFilter()->getFilterGroups() as $i => $filterGroup) {
+            $this->applyFilters($filterGroup, $i);
         }
     }
 
-    protected function applyFilters(array $filterGroup): void
+    protected function applyFilters(array $filterGroup, int $filterGroupIndex): void
     {
-        $this->getBuilder()->where(function (Builder $query) use ($filterGroup) {
+        $this->getBuilder()->where(function (Builder $query) use ($filterGroup, $filterGroupIndex) {
             foreach ($filterGroup as $filterKey => $filter) {
-                if (
-                    !$this->filterRelations($query, $filter, $filterKey === 0) &&
-                    !$this->filterRelationsCount($query, $filter, $filterKey === 0) &&
-                    $this->getModelFilter()->hasFilterableAttribute($filter['field'])
-                ) {
+                if ($this->filterRelations($query, $filter, $filterKey === 0)) {
+                    continue;
+                }
+
+                if ($this->filterRelationsCount($this->getBuilder(), $filter, $filterGroupIndex === 0)) {
+                    continue;
+                }
+
+                if ($this->getModelFilter()->hasFilterableAttribute($filter['field'])) {
                     $filterKey === 0 ? $this->where($query, $filter) : $this->orWhere($query, $filter);
                 }
             }
@@ -179,10 +184,12 @@ class QueryFilter
 
     protected function filterRelationsCount(Builder $query, array $filter, bool $firstKey = true): bool
     {
-        if (($relationCountAttribute = $this->getModelFilter()->hasFilterableRelationCount($filter['field'])) !== false) {
+        if (($relationInfo = $this->getModelFilter()->hasFilterableRelationCount($filter['field'])) !== false) {
+            [$relationName, $relationCountAttribute, $closure] = $relationInfo;
+
             $filter['field'] = $relationCountAttribute;
 
-            $this->filterRelationCount($query, $filter, !$firstKey);
+            $this->filterRelationCount($query, $relationName, $closure, $filter, !$firstKey);
 
             return true;
         }
@@ -221,9 +228,19 @@ class QueryFilter
 
     protected function filterRelationCount(
         Builder $query,
+        string $relationName,
+        ?Closure $closure,
         array $filter,
         bool $orCondition = false
     ): Builder {
+        if (is_null($closure)) {
+            $query->withCount("$relationName as {$filter['field']}");
+        } else {
+            $query->withCount([
+                "$relationName as {$filter['field']}" => $closure,
+            ]);
+        }
+
         if ($orCondition) {
             return $this->orHaving($query, $filter);
         }

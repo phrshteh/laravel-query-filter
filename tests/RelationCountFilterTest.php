@@ -27,10 +27,29 @@ class RelationCountFilterTest extends TestCase
 
         $filterResult = User::filter(new UserFilter($filter));
 
-        $filterResult->builder()->withCount('posts');
-
         foreach ($filterResult->data() as $user) {
             $this->assertEquals(1, $user->posts()->count());
+        }
+    }
+
+    public function testCustomRelationCountFilter(): void
+    {
+        $filter = new Filter();
+
+        $filter->setFilterGroups([
+            [
+                [
+                    'field' => 'bye_posts_count',
+                    'op' => '=',
+                    'value' => 2,
+                ],
+            ],
+        ]);
+
+        $filterResult = User::filter(new UserFilter($filter));
+
+        foreach ($filterResult->data() as $user) {
+            $this->assertEquals(2, $user->posts()->where('body', 'like', '%bye%')->count());
         }
     }
 }
