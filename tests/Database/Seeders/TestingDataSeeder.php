@@ -7,11 +7,6 @@ use Omalizadeh\QueryFilter\Tests\Models\User;
 
 class TestingDataSeeder extends Seeder
 {
-    /**
-     * Seed the application's database.
-     *
-     * @return void
-     */
     public function run()
     {
         $user = User::create([
@@ -63,6 +58,9 @@ class TestingDataSeeder extends Seeder
         ]);
         $user->posts()->create([
             'body' => 'bye bye.',
+        ]);
+        $user->posts()->create([
+            'body' => 'bye bye 2.',
         ]);
 
         $user = User::create([

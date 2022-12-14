@@ -64,6 +64,16 @@ class {{ class }} extends ModelFilter
     }
 
     /**
+     * Relations count that can be filtered.
+     *
+     * @return array
+     */
+    protected function filterableRelationsCount(): array
+    {
+        return [];
+    }
+
+    /**
      * Relations data that can be requested with model objects.
      */
     protected function loadableRelations(): array

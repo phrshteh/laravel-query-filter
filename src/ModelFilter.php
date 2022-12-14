@@ -2,6 +2,7 @@
 
 namespace Omalizadeh\QueryFilter;
 
+use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use JsonException;
@@ -80,6 +81,16 @@ class ModelFilter
     }
 
     /**
+     * Relations count that can be filtered.
+     *
+     * @return array
+     */
+    protected function filterableRelationsCount(): array
+    {
+        return [];
+    }
+
+    /**
      * Relations data that can be requested with model objects.
      *
      * @return array
@@ -133,6 +144,32 @@ class ModelFilter
 
             if (!is_array($filterableRelationAttributes) && $filterableRelationAttributes === $relationAttribute) {
                 return [$relationName, $relationAttribute];
+            }
+        }
+
+        return false;
+    }
+
+    public function hasFilterableRelationCount(string $relationCountAttribute)
+    {
+        foreach ($this->filterableRelationsCount() as $relationName => $filterableRelationAttributes) {
+            if (isset($filterableRelationAttributes[$relationCountAttribute]) && is_string($filterableRelationAttributes[$relationCountAttribute])) {
+                return [$relationName, $filterableRelationAttributes[$relationCountAttribute], null];
+            }
+
+            if (isset($filterableRelationAttributes[$relationCountAttribute]) && $filterableRelationAttributes[$relationCountAttribute] instanceof Closure) {
+                return [$relationName, $relationCountAttribute, $filterableRelationAttributes[$relationCountAttribute]];
+            }
+
+            if (
+                is_array($filterableRelationAttributes)
+                && in_array($relationCountAttribute, $filterableRelationAttributes, true) !== false
+            ) {
+                return [$relationName, $relationCountAttribute, null];
+            }
+
+            if (!is_array($filterableRelationAttributes) && $filterableRelationAttributes === $relationCountAttribute) {
+                return [$relationName, $relationCountAttribute, null];
             }
         }
 

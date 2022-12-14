@@ -16,7 +16,7 @@ class QueryFilterTest extends TestCase
     {
         $filterResult = User::filter((new UserFilter()));
 
-        $this->assertCount($filterResult->count(), $filterResult->data());
+        $this->assertEquals($filterResult->count(), User::count());
     }
 
     public function testFieldIsEqualFilter(): void
