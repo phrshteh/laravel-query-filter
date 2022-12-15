@@ -87,7 +87,7 @@ class ModelFilter
      *      'relations_count_attr_name',
      *  ],
      * 'relation_name' => [
-     *      'relations_count_attr_name' => closure,
+     *      'relations_count_attr_name' => condition_query_closure,
      *  ],
      *
      * @return array

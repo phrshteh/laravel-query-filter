@@ -66,6 +66,13 @@ class {{ class }} extends ModelFilter
     /**
      * Relations count that can be filtered.
      *
+     * 'relation_name' => [
+     *      'relations_count_attr_name',
+     *  ],
+     * 'relation_name' => [
+     *      'relations_count_attr_name' => condition_query_closure,
+     *  ],
+     *
      * @return array
      */
     protected function filterableRelationsCount(): array
