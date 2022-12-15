@@ -83,6 +83,13 @@ class ModelFilter
     /**
      * Relations count that can be filtered.
      *
+     * 'relation_name' => [
+     *      'relations_count_attr_name',
+     *  ],
+     * 'relation_name' => [
+     *      'relations_count_attr_name' => closure,
+     *  ],
+     *
      * @return array
      */
     protected function filterableRelationsCount(): array
@@ -129,8 +136,12 @@ class ModelFilter
 
     public function hasFilterableRelation(string $relationAttribute)
     {
+        if (array_is_list($this->filterableRelations())) {
+            return false;
+        }
+
         foreach ($this->filterableRelations() as $relationName => $filterableRelationAttributes) {
-            if (isset($filterableRelationAttributes[$relationAttribute])) {
+            if (isset($filterableRelationAttributes[$relationAttribute]) && is_string($filterableRelationAttributes[$relationAttribute])) {
                 return [$relationName, $filterableRelationAttributes[$relationAttribute]];
             }
 
@@ -152,6 +163,10 @@ class ModelFilter
 
     public function hasFilterableRelationCount(string $relationCountAttribute)
     {
+        if (array_is_list($this->filterableRelationsCount())) {
+            return false;
+        }
+
         foreach ($this->filterableRelationsCount() as $relationName => $filterableRelationAttributes) {
             if (isset($filterableRelationAttributes[$relationCountAttribute]) && is_string($filterableRelationAttributes[$relationCountAttribute])) {
                 return [$relationName, $filterableRelationAttributes[$relationCountAttribute], null];
