@@ -12,9 +12,9 @@ class UserFactory extends Factory
     public function definition(): array
     {
         return [
-            'phone' => $this->faker->phoneNumber,
+            'phone' => $this->faker->phoneNumber(),
             'paid_amount' => $this->faker->randomFloat(2, 100, 1000),
-            'is_active' => $this->faker->boolean,
+            'is_active' => $this->faker->boolean(),
         ];
     }
 }
