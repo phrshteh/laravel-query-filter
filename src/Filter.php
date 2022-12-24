@@ -256,7 +256,7 @@ class Filter implements Jsonable
         return $this->sorts;
     }
 
-    public function hasSelectedAttribute(): bool
+    public function hasAnySelectedAttribute(): bool
     {
         return !empty($this->getSelectedAttributes());
     }
@@ -264,7 +264,7 @@ class Filter implements Jsonable
     /**
      * @return bool
      */
-    public function hasFilterGroup(): bool
+    public function hasAnyFilterGroup(): bool
     {
         return !empty($this->getFilterGroups());
     }
@@ -272,7 +272,7 @@ class Filter implements Jsonable
     /**
      * @return bool
      */
-    public function hasRelations(): bool
+    public function hasAnyRelations(): bool
     {
         return !empty($this->getRelations());
     }
@@ -288,7 +288,7 @@ class Filter implements Jsonable
     /**
      * @return bool
      */
-    public function hasSort(): bool
+    public function hasAnySort(): bool
     {
         return !empty($this->getSorts());
     }
@@ -296,7 +296,7 @@ class Filter implements Jsonable
     /**
      * @return bool
      */
-    public function hasSum(): bool
+    public function hasAnySum(): bool
     {
         return !empty($this->getSums());
     }
@@ -315,6 +315,19 @@ class Filter implements Jsonable
     public function hasOffset(): bool
     {
         return !is_null($this->getOffset());
+    }
+
+    public function hasAnyFilterOn(string $attribute): bool
+    {
+        foreach ($this->getFilterGroups() as $filterGroup) {
+            foreach ($filterGroup as $filter) {
+                if ($filter['field'] === $attribute) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /**
