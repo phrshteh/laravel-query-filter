@@ -18,25 +18,25 @@ class QueryFilter
 
     public function applyFilter(): QueryFilterResult
     {
-        if ($this->getFilter()->hasSelectedAttribute()) {
+        if ($this->getFilter()->hasAnySelectedAttribute()) {
             $this->select();
         }
 
-        if ($this->getFilter()->hasFilterGroup()) {
+        if ($this->getFilter()->hasAnyFilterGroup()) {
             $this->applyFilterGroups();
         }
 
         $totalCount = $this->getBuilder()->count();
 
-        if ($this->getFilter()->hasSum()) {
+        if ($this->getFilter()->hasAnySum()) {
             $sums = $this->sum();
         }
 
-        if ($this->getFilter()->hasSort()) {
+        if ($this->getFilter()->hasAnySort()) {
             $this->sort();
         }
 
-        if ($this->getFilter()->hasRelations()) {
+        if ($this->getFilter()->hasAnyRelations()) {
             $this->load();
         }
 
