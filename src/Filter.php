@@ -317,6 +317,12 @@ class Filter implements Jsonable
         return !is_null($this->getOffset());
     }
 
+    /**
+     * Checks if there is any filtering on given attribute.
+     *
+     * @param  string  $attribute
+     * @return bool
+     */
     public function hasAnyFilterOn(string $attribute): bool
     {
         foreach ($this->getFilterGroups() as $filterGroup) {
@@ -328,6 +334,17 @@ class Filter implements Jsonable
         }
 
         return false;
+    }
+
+    /**
+     * Checks if loading given relation exists on filter.
+     *
+     * @param  string  $relation
+     * @return bool
+     */
+    public function hasRelationOn(string $relation): bool
+    {
+        return in_array($relation, $this->getRelations(), true);
     }
 
     /**

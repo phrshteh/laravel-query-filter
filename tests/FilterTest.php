@@ -28,4 +28,22 @@ class FilterTest extends TestCase
         $this->assertFalse($filter->hasAnyFilterOn('first_name'));
         $this->assertFalse($filter->hasAnyFilterOn('paid_amount'));
     }
+
+    public function testRelationExistsOnFilter(): void
+    {
+        $filter = new Filter();
+
+        $filter->addRelation('testing_relation');
+
+        $this->assertTrue($filter->hasRelationOn('testing_relation'));
+    }
+
+    public function testRelationDoesNotExistOnFilter(): void
+    {
+        $filter = new Filter();
+
+        $filter->addRelation('testing_relation');
+
+        $this->assertFalse($filter->hasRelationOn('missing_relation'));
+    }
 }
